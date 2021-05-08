@@ -7,13 +7,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
 	ob "v1.1-fulfiller/orderbook"
 )
-
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Order Manager")
