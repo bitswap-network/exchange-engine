@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/shopspring/decimal"
-	_ "v1.1-fulfiller/orderbook"
+	"github.com/shopspring/decimal"
+	ob "v1.1-fulfiller/orderbook"
 )
 
 
@@ -20,6 +20,18 @@ func rootHandler(c *gin.Context) {
 }
 
 func main() {
+	orderBook := ob.NewOrderBook()
+  fmt.Println(orderBook)
+	done, partial, partialQuantityProcessed,error := orderBook.ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(55, 0), decimal.New(100, 0))
+	if error != nil {
+    log.Fatal(error)
+  }
+	fmt.Print(done,partial,partialQuantityProcessed,"\n")
+	done, partial, partialQuantityProcessed,quantityLeft, error := orderBook.ProcessMarketOrder(ob.Buy, decimal.New(55, 0))
+	if error != nil {
+    log.Fatal(error)
+  }
+	fmt.Print(done,partial,partialQuantityProcessed,quantityLeft,"\n")
 	err := godotenv.Load()
 	if err != nil {
     log.Fatal("Error loading .env file")
