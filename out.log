@@ -1,0 +1,2 @@
+[GIN-debug] GET    /                         --> main.rootHandler (3 handlers)
+[GIN-debug] Listening and serving HTTP on localhost:5000
