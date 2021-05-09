@@ -42,6 +42,7 @@ func createMarketHandler(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
 		return
 	}
+	order.OrderType = "market"
 	order.Created = time.Now()
 	order.OrderID = fmt.Sprintf("market-%s-%s-%v-%v", order.OrderSide, order.Username, order.OrderQuantity, order.Created.UnixNano()/ int64(time.Millisecond))
 	saveErr := CreateOrder(&order)
@@ -55,7 +56,7 @@ func createMarketHandler(c *gin.Context){
 		c.JSON(http.StatusInternalServerError, gin.H{"msg":ob.ErrInvalidQuantity})
 		return
 	}
-	ordersDone, partialDone, partialQuantityProcessed,quantityLeft,_, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
+	ordersDone, partialDone, partialQuantityProcessed,quantityLeft,totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
 		return
@@ -66,31 +67,28 @@ func createMarketHandler(c *gin.Context){
 		ProcessPartial(partialDone, partialQuantityProcessed)
 		}
 	}
+	tP,_ := totalPrice.Float64()
 	if quantityLeft.IsPositive() {
-		err := PartialFulfillOrder(order.OrderID, order.OrderQuantityProcessed)
+		err := PartialFulfillOrder(order.OrderID, order.OrderQuantityProcessed,tP)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
     	log.Fatal(err)
 			return
   	}
 	} else{
-		err := FulfillOrder(order.OrderID)
+		err := FulfillOrder(order.OrderID,tP)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
     	log.Fatal(err)
 			return
-  	}
-		
+  	}	
 	}
-		
-	
-	
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
 
 func ProcessFull(orderlist []*ob.Order){
 	for _,order := range orderlist {
-		err := FulfillOrder(order.ID())
+		err := FulfillOrder(order.ID(),0)
 		if err != nil {
     	log.Fatal(err)
   	}
@@ -99,7 +97,7 @@ func ProcessFull(orderlist []*ob.Order){
 
 func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal){
 		pQ,_ := partialQuantityProcessed.Float64()
-		err := PartialFulfillOrder(order.ID(),pQ)
+		err := PartialFulfillOrder(order.ID(),pQ,0)
 		if err != nil {
     log.Fatal(err)
   	}
@@ -123,7 +121,7 @@ func main() {
 	router.GET("/", rootHandler)
 
 	exchangeRouter := router.Group("/exchange") 
-	exchangeRouter.PUT("/exchange/market", createMarketHandler)
+	exchangeRouter.POST("/exchange/market", createMarketHandler)
 	router.NoRoute(func(c *gin.Context) {
         c.AbortWithStatus(http.StatusNotFound)
     })

@@ -74,7 +74,7 @@ func RemoveOrder(selector bson.M) error {
     return nil
 }
 
-func FulfillOrder(orderID string) (err error) {
+func FulfillOrder(orderID string, cost float64) (err error) {
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
     session := mongoConnect()
@@ -98,12 +98,21 @@ func FulfillOrder(orderID string) (err error) {
 		var bitcloutBalanceUpdated float64
 		var etherBalanceUpdated float64
 		//update ether USD price var
+		if orderDoc.OrderType == "limit"{
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout+(orderDoc.OrderPrice*orderDoc.OrderQuantity)
 			etherBalanceUpdated = userDoc.Balance.Ether-(orderDoc.OrderPrice*orderDoc.OrderQuantity/3000)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout-(orderDoc.OrderPrice*orderDoc.OrderQuantity)
 			etherBalanceUpdated = userDoc.Balance.Ether+(orderDoc.OrderPrice*orderDoc.OrderQuantity/3000)
+		}}else{
+			if orderDoc.OrderSide == "buy" {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout+cost
+			etherBalanceUpdated = userDoc.Balance.Ether-(cost/3000)
+		} else {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout-cost
+			etherBalanceUpdated = userDoc.Balance.Ether+(cost/3000)
+		}
 		}
 
 		err = users.Update(bson.M{"username":orderDoc.Username},bson.M{"balance.bitclout":bitcloutBalanceUpdated,"balance.ether":etherBalanceUpdated} )
@@ -113,7 +122,7 @@ func FulfillOrder(orderID string) (err error) {
 		// add check for negative balance here
     return nil
 }
-func PartialFulfillOrder(orderID string, partialQuantityProcessed float64 ) (err error) {
+func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64 ) (err error) {
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
     session := mongoConnect()
