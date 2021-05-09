@@ -41,6 +41,9 @@ func main() {
 
 	exchangeRouter := router.Group("/exchange")
 	exchangeRouter.POST("/market", MarketOrderHandler)
+	exchangeRouter.POST("/limit", LimitOrderHandler)
+	exchangeRouter.POST("/cancel", CancelOrderHandler)
+	// exchangeRouter.POST("/market-price", GetMarketPriceHandler)
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 	})

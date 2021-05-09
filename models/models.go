@@ -17,6 +17,7 @@ type OrderSchema struct {
 	OrderPrice float64 `json:"orderPrice,omitempty" bson:"orderPrice,omitempty" binding:"-"`
 	OrderQuantityProcessed float64 `json:"orderQuantityProcessed" bson:"orderQuantityProcessed" binding:"-"`
 	Complete bool `json:"complete" bson:"complete" binding:"-"`
+	Error string `json:"error" bson:"error" binding:"-"`
 	CompleteTime time.Time `json:"completeTime" bson:"completeTime,omitempty" binding:"-"`
 }
 

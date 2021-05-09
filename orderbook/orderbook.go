@@ -127,7 +127,7 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 
 	bestPrice := iter()
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		ordersDone, partialDone, partialQty, quantityLeft,_ := ob.processQueue(bestPrice, quantityToTrade)
+		ordersDone, partialDone, partialQty, quantityLeft, _ := ob.processQueue(bestPrice, quantityToTrade)
 		done = append(done, ordersDone...)
 		partial = partialDone
 		partialQuantityProcessed = partialQty

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -62,24 +63,20 @@ func CreateOrder(order *model.OrderSchema) error {
 	}
 	return nil
 }
-// func GetOrderByOrderId(orderID string) (orderDoc *model.OrderSchema, err error) {
-// 	client, ctx, cancel := mongoConnect()
-// 	defer cancel()
-// 	defer client.Disconnect(ctx)
-// 	query := bson.M{"orderID": orderID}
-// 	db := client.Database(database)
-// 	orders := db.Collection("orders")
-// 	err = orders.FindOne(ctx, query).Decode(&orderDoc)
-// 	if err == mongo.ErrNoDocuments {
-// 		fmt.Println("record does not exist")
-// 		return nil, err
-// 	} else if err != nil {
-// 		log.Printf("Could not create Task: %v", err)
-// 		return nil, err
-// 	}
 
-// 	return orderDoc, nil
-// }
+func CancelCompleteOrder(orderID string) (err error) {
+	client, ctx, cancel := mongoConnect()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	db := client.Database(database)
+	orders := db.Collection("orders")
+	update := bson.M{"$set": bson.M{"error": "Cancelled by User", "complete": true, "completeTime": time.Now()}}
+	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func FulfillOrder(orderID string, cost float64) (err error) {
 	var orderDoc *model.OrderSchema
@@ -92,11 +89,6 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 	users := db.Collection("users")
 
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
-	if err != nil {
-		return err
-	}
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
-	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
 	}
@@ -124,15 +116,20 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 			etherBalanceUpdated = userDoc.Balance.Ether + (cost / 3000)
 		}
 	}
-	log.Println("cost: ", cost)
-	log.Println("balances: ", bitcloutBalanceUpdated, etherBalanceUpdated)
+	if (bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0){
+		return errors.New("Insufficient Balance")
+	}
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
+	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	x, err := users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	log.Println("x: ", x)
 	if err != nil {
 		return err
 	}
-	// add check for negative balance here
 	return nil
 }
 func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64) (err error) {
@@ -144,12 +141,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
-	// oQP,_ := order.Quantity().Float64()
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
-	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
-	if err != nil {
-		return err
-	}
+	
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
@@ -168,11 +160,18 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
 		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
 	}
+	if (bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0){
+		return errors.New("Insufficient Balance")
+	}
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
+	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
-	// check for negative balance here
 	return nil
 }
