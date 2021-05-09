@@ -7,10 +7,10 @@ import (
 )
 
 type OrderSchema struct {
-	ID bson.ObjectId `json: "_id" bson:"_id" binding:"-"`
-	Username string `json: "username" bson: "username" binding:"required"`
+	ID bson.ObjectId `json:"_id" bson:"_id" binding:"-"`
+	Username string `json:"username" bson:"username" binding:"required"`
 	Created time.Time `json:"created" bson:"created" binding:"-"`
-	OrderID string `json: "orderID" bson:"orderID" binding:"-"`
+	OrderID string `json:"orderID" bson:"orderID" binding:"-"`
 	OrderSide string `json:"orderSide" bson:"orderSide" binding:"required"`
 	OrderQuantity float64 `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
 	OrderPrice float64 `json:"orderPrice" bson:"orderPrice" binding:"-"`

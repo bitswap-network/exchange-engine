@@ -54,7 +54,7 @@ func createMarketHandler(c *gin.Context){
 		return
 	}
 	order.Created = time.Now()
-	order.OrderID = fmt.Sprintf("market-%s-%s-%s-%s", order.OrderSide,order.Username, order.OrderQuantity, order.Created.UnixNano()/ int64(time.Millisecond))
+	order.OrderID = fmt.Sprintf("market-%s-%s-%v-%v", order.OrderSide, order.Username, order.OrderQuantity, order.Created.UnixNano()/ int64(time.Millisecond))
 	order.PartialQuantityProcessed,_ = partialQuantityProcessed.Float64()
 	order.OrderQuantity,_ = orderQuantity.Sub(partialQuantityProcessed).Float64()
 	saveErr := CreateOrder(&order)
