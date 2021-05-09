@@ -55,12 +55,14 @@ func CreateOrder(order *model.OrderSchema) error {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
+	defer wg.Done()
 	order.ID = primitive.NewObjectID()
 	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -68,6 +70,7 @@ func CancelCompleteOrder(orderID string) (err error) {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
+	defer wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	update := bson.M{"$set": bson.M{"error": "Cancelled by User", "complete": true, "completeTime": time.Now()}}
@@ -84,6 +87,7 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
+	defer wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
@@ -138,16 +142,19 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
+	defer wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
 
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	var bitcloutBalanceUpdated float64
@@ -161,16 +168,19 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
 	}
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
+		log.Println("Insufficient Balance")
 		return errors.New("Insufficient Balance")
 	}
 	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
 	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
+		log.Println("Insufficient Balance")
 		return err
 	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
+		log.Println("Insufficient Balance")
 		return err
 	}
 	return nil
