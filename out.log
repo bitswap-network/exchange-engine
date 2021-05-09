@@ -1,3 +1,0 @@
-[GIN-debug] GET    /                         --> main.rootHandler (10 handlers)
-[GIN-debug] POST   /exchange/market          --> main.MarketOrderHandler (10 handlers)
-[GIN-debug] Listening and serving HTTP on localhost:5050
