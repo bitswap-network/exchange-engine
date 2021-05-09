@@ -7,17 +7,21 @@ import (
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-)
-const (
-	// Timeout operations after N seconds
-	connectTimeout           = 5
-	connectionStringTemplate = "mongodb+srv://%s:%s@%s"
+	model "v1.1-fulfiller/models"
 )
 
-// GetConnection - Retrieves a client to the DocumentDB
-func getConnection() (*mongo.Client, context.Context, context.CancelFunc) {
+const (
+	connectTimeout           = 5
+	connectionStringTemplate = "mongodb+srv://%s:%s@%s"
+	database                 = "bitswap"
+)
+
+func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
+	log.Print("connecting to mongodb")
 	username := os.Getenv("MONGODB_USERNAME")
 	password := os.Getenv("MONGODB_PASSWORD")
 	clusterEndpoint := os.Getenv("MONGODB_ENDPOINT")
@@ -44,4 +48,131 @@ func getConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 
 	fmt.Println("Connected to MongoDB!")
 	return client, ctx, cancel
+}
+
+func CreateOrder(order *model.OrderSchema) error {
+	client, ctx, cancel := mongoConnect()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	order.ID = primitive.NewObjectID()
+	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
+	if err != nil {
+		log.Printf("Could not create order: %v", err)
+		return err
+	}
+	return nil
+}
+// func GetOrderByOrderId(orderID string) (orderDoc *model.OrderSchema, err error) {
+// 	client, ctx, cancel := mongoConnect()
+// 	defer cancel()
+// 	defer client.Disconnect(ctx)
+// 	query := bson.M{"orderID": orderID}
+// 	db := client.Database(database)
+// 	orders := db.Collection("orders")
+// 	err = orders.FindOne(ctx, query).Decode(&orderDoc)
+// 	if err == mongo.ErrNoDocuments {
+// 		fmt.Println("record does not exist")
+// 		return nil, err
+// 	} else if err != nil {
+// 		log.Printf("Could not create Task: %v", err)
+// 		return nil, err
+// 	}
+
+// 	return orderDoc, nil
+// }
+
+func FulfillOrder(orderID string, cost float64) (err error) {
+	var orderDoc *model.OrderSchema
+	var userDoc *model.UserSchema
+	client, ctx, cancel := mongoConnect()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	db := client.Database(database)
+	orders := db.Collection("orders")
+	users := db.Collection("users")
+
+	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
+	if err != nil {
+		return err
+	}
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
+	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
+	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	if err != nil {
+		return err
+	}
+	var bitcloutBalanceUpdated float64
+	var etherBalanceUpdated float64
+	//update ether USD price var
+	if orderDoc.OrderType == "limit" {
+		if orderDoc.OrderSide == "buy" {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * orderDoc.OrderQuantity)
+			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * orderDoc.OrderQuantity / 3000)
+		} else {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * orderDoc.OrderQuantity)
+			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * orderDoc.OrderQuantity / 3000)
+		}
+	} else {
+		if orderDoc.OrderSide == "buy" {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + cost
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / 3000)
+		} else {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - cost
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / 3000)
+		}
+	}
+	log.Println("cost: ", cost)
+	log.Println("balances: ", bitcloutBalanceUpdated, etherBalanceUpdated)
+	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
+	x, err := users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+	log.Println("x: ", x)
+	if err != nil {
+		return err
+	}
+	// add check for negative balance here
+	return nil
+}
+func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64) (err error) {
+	var orderDoc *model.OrderSchema
+	var userDoc *model.UserSchema
+	client, ctx, cancel := mongoConnect()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	db := client.Database(database)
+	orders := db.Collection("orders")
+	users := db.Collection("users")
+	// oQP,_ := order.Quantity().Float64()
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
+	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
+	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
+	if err != nil {
+		return err
+	}
+	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	if err != nil {
+		return err
+	}
+	var bitcloutBalanceUpdated float64
+	var etherBalanceUpdated float64
+	//update ether USD price var
+	if orderDoc.OrderSide == "buy" {
+		bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * partialQuantityProcessed)
+		etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
+	} else {
+		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
+		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
+	}
+	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
+	_, err = users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+	if err != nil {
+		return err
+	}
+	// check for negative balance here
+	return nil
 }
