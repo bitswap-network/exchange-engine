@@ -33,13 +33,14 @@ func main() {
 
 	router.Use(cors.Default())
 	router.Use(helmet.Default())
+	// router.Use(internalServerAuth())
 
 	f, _ := os.Create("out.log")
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	router.GET("/", rootHandler)
-
 	exchangeRouter := router.Group("/exchange")
+	// exchangeRouter := router.Group("/exchange",internalServerAuth())
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
 	exchangeRouter.POST("/cancel", CancelOrderHandler)

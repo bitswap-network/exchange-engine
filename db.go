@@ -116,7 +116,7 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 			etherBalanceUpdated = userDoc.Balance.Ether + (cost / 3000)
 		}
 	}
-	if (bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0){
+	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
 		return errors.New("Insufficient Balance")
 	}
 	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
@@ -141,7 +141,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
-	
+
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
@@ -160,7 +160,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
 		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
 	}
-	if (bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0){
+	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
 		return errors.New("Insufficient Balance")
 	}
 	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
