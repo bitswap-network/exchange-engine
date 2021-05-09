@@ -3,17 +3,18 @@ package models
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type OrderSchema struct {
-	ID primitive.ObjectID `json: "_id" bson:"_id" binding:"-"`
+	ID bson.ObjectId `json: "_id" bson:"_id" binding:"-"`
 	Username string `json: "username" bson: "username" binding:"required"`
 	Created time.Time `json:"created" bson:"created" binding:"-"`
 	OrderID string `json: "orderID" bson:"orderID" binding:"-"`
 	OrderSide string `json:"orderSide" bson:"orderSide" binding:"required"`
-	OrderQuantity float32 `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
-	OrderPrice float32 `json:"orderPrice" bson:"orderPrice" binding:"-"`
-	PartialQuantityProcessed float32 `json:"partialQuantityProcessed" bson:"partialQuantityProcessed" binding:"-"`
-	QuantityLeft float32 `json:"quantityLeft" bson:"quantityLeft" binding:"-"`
+	OrderQuantity float64 `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
+	OrderPrice float64 `json:"orderPrice" bson:"orderPrice" binding:"-"`
+	PartialQuantityProcessed float64 `json:"partialQuantityProcessed" bson:"partialQuantityProcessed" binding:"-"`
+	Complete bool `json:"complete" bson:"complete" binding:"-"`
+	CompleteTime time.Time `json:"completeTime" bson:"completeTime" binding:"-"`
 }
