@@ -32,7 +32,7 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
 		return
 	}
-	
+
 	order.OrderType = "market"
 	order.Created = time.Now()
 	order.Complete = false

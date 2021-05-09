@@ -90,12 +90,12 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
-	
+
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
 	}
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity,"complete": true,"completeTime": time.Now()}}
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
 	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -124,11 +124,11 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 			etherBalanceUpdated = userDoc.Balance.Ether + (cost / 3000)
 		}
 	}
-	log.Println("cost: ",cost)
-	log.Println("balances: ",bitcloutBalanceUpdated,etherBalanceUpdated)
-	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated,"balance.ether":etherBalanceUpdated}}
+	log.Println("cost: ", cost)
+	log.Println("balances: ", bitcloutBalanceUpdated, etherBalanceUpdated)
+	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	x, err := users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
-	log.Println("x: ",x)
+	log.Println("x: ", x)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
 		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
 	}
-	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated,"balance.ether":etherBalanceUpdated}}
+	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		return err
