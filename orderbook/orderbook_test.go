@@ -157,7 +157,7 @@ func TestMarketProcess(t *testing.T) {
 	ob := NewOrderBook()
 	addDepth(ob, "", decimal.New(2, 0))
 
-	done, partial, partialQty, left, err := ob.ProcessMarketOrder(Buy, decimal.New(3, 0))
+	done, partial, partialQty, left,_, err := ob.ProcessMarketOrder(Buy, decimal.New(3, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,11 +174,11 @@ func TestMarketProcess(t *testing.T) {
 	t.Log("Partial", partial)
 	t.Log(ob)
 
-	if _, _, _, _, err := ob.ProcessMarketOrder(Buy, decimal.New(0, 0)); err == nil {
+	if _, _, _, _,_, err := ob.ProcessMarketOrder(Buy, decimal.New(0, 0)); err == nil {
 		t.Fatal("Can add zero quantity order")
 	}
 
-	done, partial, partialQty, left, err = ob.ProcessMarketOrder(Sell, decimal.New(12, 0))
+	done, partial, partialQty, left,_, err = ob.ProcessMarketOrder(Sell, decimal.New(12, 0))
 	if err != nil {
 		t.Fatal(err)
 	}

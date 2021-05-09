@@ -13,14 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
-	"gopkg.in/mgo.v2/bson"
 	model "v1.1-fulfiller/models"
 	ob "v1.1-fulfiller/orderbook"
 )
 
 var exchange = ob.NewOrderBook()
-
-const database, collection = "bitswap", "orders"
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
@@ -28,6 +25,8 @@ func rootHandler(c *gin.Context) {
 
 
 func createMarketHandler(c *gin.Context){
+	//estimate price?
+
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Print(err)
@@ -43,53 +42,67 @@ func createMarketHandler(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
 		return
 	}
-	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
-	if orderQuantity.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg":ob.ErrInvalidQuantity})
-		return
-	}
-	ordersDone, partialDone, partialQuantityProcessed,_, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
-	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
-		return
-	}
 	order.Created = time.Now()
 	order.OrderID = fmt.Sprintf("market-%s-%s-%v-%v", order.OrderSide, order.Username, order.OrderQuantity, order.Created.UnixNano()/ int64(time.Millisecond))
-	order.PartialQuantityProcessed,_ = partialQuantityProcessed.Float64()
-	order.OrderQuantity,_ = orderQuantity.Sub(partialQuantityProcessed).Float64()
 	saveErr := CreateOrder(&order)
 	if saveErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg":saveErr})
 		return
 	}
+
+	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
+	if orderQuantity.Sign() <= 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg":ob.ErrInvalidQuantity})
+		return
+	}
+	ordersDone, partialDone, partialQuantityProcessed,quantityLeft,_, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
+	if error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
+		return
+	}	
 	if ordersDone != nil {
-		ProcessDone(ordersDone)
-		return
-	}
-	if partialDone != nil {
+		ProcessFull(ordersDone)
+		if partialDone != nil {
 		ProcessPartial(partialDone, partialQuantityProcessed)
-		return
+		}
 	}
+	if quantityLeft.IsPositive() {
+		err := PartialFulfillOrder(order.OrderID, order.OrderQuantityProcessed)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+    	log.Fatal(err)
+			return
+  	}
+	} else{
+		err := FulfillOrder(order.OrderID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+    	log.Fatal(err)
+			return
+  	}
+		
+	}
+		
+	
+	
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
 
-func ProcessDone(orderlist []*ob.Order){
-	orders := orderlist
-	for _,order := range orders {
-		err := UpdateOrder(order.ID(), bson.M{"complete":true})
+func ProcessFull(orderlist []*ob.Order){
+	for _,order := range orderlist {
+		err := FulfillOrder(order.ID())
 		if err != nil {
-    log.Fatal(err)
+    	log.Fatal(err)
   	}
 	}
 }
+
 func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal){
-		oQ,_ := order.Quantity().Float64()
 		pQ,_ := partialQuantityProcessed.Float64()
-		err := UpdateOrder(order.ID(), bson.M{"orderQuantity":oQ,"partialQuantityProcessed":pQ})
+		err := PartialFulfillOrder(order.ID(),pQ)
 		if err != nil {
     log.Fatal(err)
   	}
-	
 }
 
 func main() {

@@ -97,7 +97,7 @@ func (os *OrderSide) MaxPriceQueue() *OrderQueue {
 	return nil
 }
 
-// MinPriceQueue returns maximal level of price
+// MinPriceQueue returns minimal level of price
 func (os *OrderSide) MinPriceQueue() *OrderQueue {
 	if os.depth > 0 {
 		if value, found := os.priceTree.GetMin(); found {
