@@ -1,19 +1,19 @@
 package models
 
 import (
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Pool struct {
-	_id primitive.ObjectID `json: "_id" bson:"_id"`
-	address string `json:"address" bson:"address"`
-	active bool `json:"active" bson:"active"`
-	listing primitive.ObjectID `json:"listing" bson:"listing"`
-	balance float64 `json:"balance" bson:"balance"`
-	privateKey PrivateKey `json:"privateKey" bson:"privateKey"`
-	
-}
-type PrivateKey struct {
-		salt string `json:"salt" bson:"salt"`
-		encryptedKey string `json:"encryptedKey" bson:"encryptedKey"`
+type OrderSchema struct {
+	ID primitive.ObjectID `json: "_id" bson:"_id" binding:"-"`
+	Username string `json: "username" bson: "username" binding:"required"`
+	Created time.Time `json:"created" bson:"created" binding:"-"`
+	OrderID string `json: "orderID" bson:"orderID" binding:"-"`
+	OrderSide string `json:"orderSide" bson:"orderSide" binding:"required"`
+	OrderQuantity float32 `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
+	OrderPrice float32 `json:"orderPrice" bson:"orderPrice" binding:"-"`
+	PartialQuantityProcessed float32 `json:"partialQuantityProcessed" bson:"partialQuantityProcessed" binding:"-"`
+	QuantityLeft float32 `json:"quantityLeft" bson:"quantityLeft" binding:"-"`
 }

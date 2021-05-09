@@ -7,8 +7,10 @@ import (
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	model "v1.1-fulfiller/models"
 )
 const (
 	// Timeout operations after N seconds
@@ -44,4 +46,18 @@ func getConnection() (*mongo.Client, context.Context, context.CancelFunc) {
 
 	fmt.Println("Connected to MongoDB!")
 	return client, ctx, cancel
+}
+
+func SaveOrder(order *model.OrderSchema) (primitive.ObjectID, error){
+	client, ctx, cancel := getConnection()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	order.ID = primitive.NewObjectID()
+	result, err := client.Database("bitswap").Collection("orders").InsertOne(ctx, order)
+	if err != nil {
+		log.Printf("Could not create Task: %v", err)
+		return primitive.NilObjectID, err
+	}
+	oid := result.InsertedID.(primitive.ObjectID)
+	return oid, nil
 }
