@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/shopspring/decimal"
 	ob "v1.1-fulfiller/orderbook"
 )
 
@@ -21,7 +22,8 @@ func rootHandler(c *gin.Context) {
 }
 
 func main() {
-
+	exchange.ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(55, 0), decimal.New(100, 0))
+	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID", decimal.New(100, 0), decimal.New(10, 0))
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -38,7 +40,7 @@ func main() {
 	router.GET("/", rootHandler)
 
 	exchangeRouter := router.Group("/exchange")
-	exchangeRouter.POST("/exchange/market", MarketOrderHandler)
+	exchangeRouter.POST("/market", MarketOrderHandler)
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 	})

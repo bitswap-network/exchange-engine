@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -18,6 +20,9 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
 		return
 	}
+	data, _ := json.MarshalIndent(order, "", "  ")
+	fmt.Println(string(data))
+
 	var orderSide ob.Side
 	if order.OrderSide == "buy" {
 		orderSide = ob.Buy
@@ -27,8 +32,10 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
 		return
 	}
+	
 	order.OrderType = "market"
 	order.Created = time.Now()
+	order.Complete = false
 	order.OrderID = OrderIDGen("market", order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 	saveErr := CreateOrder(&order)
 	if saveErr != nil {
@@ -42,6 +49,8 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
+	log.Println(exchange)
+	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
 		return

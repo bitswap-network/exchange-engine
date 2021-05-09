@@ -48,7 +48,7 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 	if quantity.Sign() <= 0 {
 		return nil, nil, decimal.Zero,decimal.Zero,  decimal.Zero, ErrInvalidQuantity
 	}
-	fullPrice = decimal.Zero
+	// fullPrice = decimal.Zero
 	var (
 		iter          func() *OrderQueue
 		sideToProcess *OrderSide
@@ -67,7 +67,7 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 		ordersDone, partialDone, partialProcessed, quantityLeft, totalPrice := ob.processQueue(bestPrice, quantity)
 		done = append(done, ordersDone...)
 		partial = partialDone
-		fullPrice.Add(totalPrice)
+		fullPrice=fullPrice.Add(totalPrice)
 		partialQuantityProcessed = partialProcessed
 		quantity = quantityLeft
 	}
@@ -162,7 +162,7 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 }
 
 func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
-	totalPrice = decimal.Zero
+	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
 
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
@@ -172,12 +172,12 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		if quantityLeft.LessThan(headOrder.Quantity()) {
 			partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
 			partialQuantityProcessed = quantityLeft
-			totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
+			totalPrice = totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
 			orderQueue.Update(headOrderEl, partial)
 			quantityLeft = decimal.Zero
 		} else {
 			quantityLeft = quantityLeft.Sub(headOrder.Quantity())
-			totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
+			totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
 			done = append(done, ob.CancelOrder(headOrder.ID()))
 		}
 	}
