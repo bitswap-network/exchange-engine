@@ -62,24 +62,24 @@ func CreateOrder(order *model.OrderSchema) error {
 	}
 	return nil
 }
-func GetOrderByOrderId(orderID string) (orderDoc *model.OrderSchema, err error) {
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
-	query := bson.M{"orderID": orderID}
-	db := client.Database(database)
-	orders := db.Collection("orders")
-	err = orders.FindOne(ctx, query).Decode(&orderDoc)
-	if err == mongo.ErrNoDocuments {
-		fmt.Println("record does not exist")
-		return nil, err
-	} else if err != nil {
-		log.Printf("Could not create Task: %v", err)
-		return nil, err
-	}
+// func GetOrderByOrderId(orderID string) (orderDoc *model.OrderSchema, err error) {
+// 	client, ctx, cancel := mongoConnect()
+// 	defer cancel()
+// 	defer client.Disconnect(ctx)
+// 	query := bson.M{"orderID": orderID}
+// 	db := client.Database(database)
+// 	orders := db.Collection("orders")
+// 	err = orders.FindOne(ctx, query).Decode(&orderDoc)
+// 	if err == mongo.ErrNoDocuments {
+// 		fmt.Println("record does not exist")
+// 		return nil, err
+// 	} else if err != nil {
+// 		log.Printf("Could not create Task: %v", err)
+// 		return nil, err
+// 	}
 
-	return orderDoc, nil
-}
+// 	return orderDoc, nil
+// }
 
 func FulfillOrder(orderID string, cost float64) (err error) {
 	var orderDoc *model.OrderSchema

@@ -17,8 +17,6 @@ func addDepth(ob *OrderBook, prefix string, quantity decimal.Decimal) {
 	for i := 100; i < 150; i = i + 10 {
 		ob.ProcessLimitOrder(Sell, fmt.Sprintf("%ssell-%d", prefix, i), quantity, decimal.New(int64(i), 0))
 	}
-
-	return
 }
 
 func TestLimitPlace(t *testing.T) {
@@ -67,7 +65,6 @@ func TestLimitPlace(t *testing.T) {
 	}
 
 	t.Log(ob.Depth())
-	return
 }
 
 func TestLimitProcess(t *testing.T) {

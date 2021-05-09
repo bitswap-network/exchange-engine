@@ -49,12 +49,13 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
-	log.Println(exchange)
-	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
 		return
 	}
+	log.Println(exchange)
+	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
+	
 	if ordersDone != nil {
 		ProcessFull(ordersDone)
 		if partialDone != nil {
