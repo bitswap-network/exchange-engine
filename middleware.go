@@ -27,7 +27,7 @@ func internalServerAuth() gin.HandlerFunc {
 		if hmac.Equal([]byte(signature[0]), []byte(hex.EncodeToString(expectedMAC))) {
 			c.Next()
 		} else {
-			c.AbortWithStatus(403)
+			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 	}
 }

@@ -37,11 +37,9 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Created = time.Now()
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-	saveErr := CreateOrder(&order)
-	if saveErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": saveErr})
-		return
-	}
+
+	wg.Add(1)
+	go CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -63,20 +61,24 @@ func MarketOrderHandler(c *gin.Context) {
 		}
 	}
 	tP, _ := totalPrice.Float64()
+	pQp, _ := partialQuantityProcessed.Float64()
 	if quantityLeft.IsPositive() {
-		err := PartialFulfillOrder(order.OrderID, order.OrderQuantityProcessed, tP)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-			log.Fatal(err)
-			return
-		}
+		wg.Add(1)
+		go PartialFulfillOrder(order.OrderID, pQp, tP)
+		// if err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		// 	log.Println(err)
+		// 	return
+		// }
 	} else {
-		err := FulfillOrder(order.OrderID, tP)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-			log.Fatal(err)
-			return
-		}
+		//add checks & validators
+		wg.Add(1)
+		go FulfillOrder(order.OrderID, tP)
+		// if err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		// 	log.Println(err)
+		// 	return
+		// }
 	}
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
@@ -105,11 +107,9 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Created = time.Now()
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-	saveErr := CreateOrder(&order)
-	if saveErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": saveErr})
-		return
-	}
+
+	wg.Add(1)
+	go CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
@@ -117,7 +117,9 @@ func LimitOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity})
 		return
 	}
+
 	ordersDone, partialDone, partialQuantityProcessed, error := exchange.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
+
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
 		return
@@ -149,10 +151,8 @@ func CancelOrderHandler(c *gin.Context) {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
-	err := CancelCompleteOrder(orderID.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-		return
-	}
+	wg.Add(1)
+	go CancelCompleteOrder(orderID.ID)
+
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 }
