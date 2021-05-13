@@ -61,7 +61,7 @@ func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 }
 
 func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err error) {
-	log.Printf("user balance: %v\n", orderID)
+	log.Printf("fetching user balance from: %v\n", orderID)
 	var userDoc *model.UserSchema
 	var orderDoc *model.OrderSchema
 	client, ctx, cancel := mongoConnect()
