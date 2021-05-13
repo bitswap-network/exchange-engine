@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	global "v1.1-fulfiller/global"
 	model "v1.1-fulfiller/models"
 )
 
@@ -59,6 +60,27 @@ func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 	return client, ctx, cancel
 }
 
+func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err error) {
+	log.Printf("user balance: %v\n", orderID)
+	var userDoc *model.UserSchema
+	var orderDoc *model.OrderSchema
+	client, ctx, cancel := mongoConnect()
+	defer cancel()
+	defer client.Disconnect(ctx)
+	db := client.Database(database)
+	orders := db.Collection("orders")
+	users := db.Collection(userCollection())
+	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&userDoc)
+	if err != nil {
+		return nil, err
+	}
+	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	if err != nil {
+		return nil, err
+	}
+	return userDoc.Balance, nil
+}
+
 func CreateOrder(order *model.OrderSchema) error {
 	log.Printf("create order: %v\n", order.OrderID)
 	client, ctx, cancel := mongoConnect()
@@ -73,15 +95,15 @@ func CreateOrder(order *model.OrderSchema) error {
 	return nil
 }
 
-func CancelCompleteOrder(orderID string) error {
+func CancelCompleteOrder(orderID string, errorString string) error {
 	log.Printf("cancel complete: %v\n", orderID)
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	defer wg.Done()
+	defer global.Wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
-	update := bson.M{"$set": bson.M{"error": "Cancelled by User", "complete": true, "completeTime": time.Now()}}
+	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now()}}
 	_, err := orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -96,7 +118,7 @@ func FulfillOrder(orderID string, cost float64) error {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	defer wg.Done()
+	defer global.Wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
@@ -117,18 +139,18 @@ func FulfillOrder(orderID string, cost float64) error {
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * orderDoc.OrderQuantity)
-			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * orderDoc.OrderQuantity / global.ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * orderDoc.OrderQuantity)
-			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * orderDoc.OrderQuantity / global.ETHUSD)
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + cost
-			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / global.ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - cost
-			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / global.ETHUSD)
 		}
 	}
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
@@ -154,7 +176,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	defer wg.Done()
+	defer global.Wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
@@ -173,18 +195,18 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * partialQuantityProcessed)
-			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / global.ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
-			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / global.ETHUSD)
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + cost
-			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / global.ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - cost
-			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / global.ETHUSD)
 		}
 	}
 

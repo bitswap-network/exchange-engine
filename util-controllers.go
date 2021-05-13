@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
@@ -38,6 +39,6 @@ func GetMarketPriceHandler(c *gin.Context) {
 	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantityFloat, "price": priceFloat, "side": sideParam})
 }
 func GetETHUSDHandler(c *gin.Context) {
-	log.Println(ETHUSD)
-	c.SecureJSON(http.StatusOK, gin.H{"result": ETHUSD})
+	log.Println(global.ETHUSD)
+	c.SecureJSON(http.StatusOK, gin.H{"result": global.ETHUSD})
 }

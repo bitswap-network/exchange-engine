@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -17,8 +16,6 @@ import (
 )
 
 var exchange = ob.NewOrderBook()
-var wg sync.WaitGroup
-var ETHUSD float64
 var ENV_MODE string
 
 func rootHandler(c *gin.Context) {
@@ -92,7 +89,7 @@ func main() {
 
 	fmt.Printf("Starting server at port 5050\n")
 	fmt.Println(os.Getenv("GIN_MODE"))
-	exDepth,_ :=exchange.DepthMarshalJSON()
+	exDepth, _ := exchange.DepthMarshalJSON()
 	fmt.Println(string(exDepth))
 	if err := router.Run("localhost:5050"); err != nil {
 		log.Fatal(err)
