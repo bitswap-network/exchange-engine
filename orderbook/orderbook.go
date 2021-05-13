@@ -187,7 +187,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		} else {
 			log.Println("validation failed")
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(headOrder.ID(),"Order Cancelled due to Insufficient Funds")
+			go db.CancelCompleteOrder(headOrder.ID(), "Order Cancelled due to Insufficient Funds")
 			ob.CancelOrder(headOrder.ID())
 		}
 	}
@@ -198,7 +198,7 @@ func (ob *OrderBook) ValidateBalance(order *Order) bool {
 	balance, err := db.GetUserBalanceFromOrder(order.ID())
 	//IMPORTANT: must change - only for debug
 	if err != nil {
-		log.Println(err)		
+		log.Println(err)
 		return true
 	}
 

@@ -194,7 +194,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	var bitcloutBalanceUpdated, etherBalanceUpdated float64
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout +  partialQuantityProcessed
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + partialQuantityProcessed
 			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / global.ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - partialQuantityProcessed
