@@ -60,7 +60,6 @@ func SetETHUSD() {
 		log.Println(err)
 	}
 	fmt.Println(ETHUSD)
-	return
 }
 
 func getJson(url string, target interface{}) error {
