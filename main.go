@@ -52,7 +52,7 @@ func RouterSetup() *gin.Engine {
 
 	router.GET("/", rootHandler)
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
-	router.GET("/ethusd", GetMarketPriceHandler)
+	router.GET("/ethusd", GetETHUSDHandler)
 	//Debug mode bypasses server auth
 	exchangeRouter := router.Group("/exchange", internalServerAuth())
 
