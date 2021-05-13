@@ -21,6 +21,14 @@ const (
 	database                 = "bitswap"
 )
 
+func userCollection() string {
+	if os.Getenv("ENV_MODE") == "release" {
+		return "users"
+	} else {
+		return "test_users"
+	}
+}
+
 func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 	log.Print("connecting to mongodb")
 	username := os.Getenv("MONGODB_USERNAME")
@@ -52,21 +60,21 @@ func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 }
 
 func CreateOrder(order *model.OrderSchema) error {
+	log.Printf("create order: %v\n", order.OrderID)
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	defer wg.Done()
 	order.ID = primitive.NewObjectID()
 	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
 	}
-
 	return nil
 }
 
 func CancelCompleteOrder(orderID string) error {
+	log.Printf("cancel complete: %v\n", orderID)
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
@@ -82,6 +90,7 @@ func CancelCompleteOrder(orderID string) error {
 }
 
 func FulfillOrder(orderID string, cost float64) error {
+	log.Printf("fulfill: %v\n", orderID)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	client, ctx, cancel := mongoConnect()
@@ -90,12 +99,13 @@ func FulfillOrder(orderID string, cost float64) error {
 	defer wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
-	users := db.Collection("users")
+	users := db.Collection(userCollection())
 	//Finding order in database
 	err := orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
 	}
+	log.Println(orderDoc)
 	//finding user associated with order
 	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
@@ -138,6 +148,7 @@ func FulfillOrder(orderID string, cost float64) error {
 	return nil
 }
 func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64) (err error) {
+	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	client, ctx, cancel := mongoConnect()
@@ -146,7 +157,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	defer wg.Done()
 	db := client.Database(database)
 	orders := db.Collection("orders")
-	users := db.Collection("users")
+	users := db.Collection(userCollection())
 
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
@@ -158,16 +169,25 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		log.Println(err)
 		return err
 	}
-	var bitcloutBalanceUpdated float64
-	var etherBalanceUpdated float64
-	//update ether USD price var
-	if orderDoc.OrderSide == "buy" {
-		bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * partialQuantityProcessed)
-		etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+	var bitcloutBalanceUpdated, etherBalanceUpdated float64
+	if orderDoc.OrderType == "limit" {
+		if orderDoc.OrderSide == "buy" {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * partialQuantityProcessed)
+			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+		} else {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
+			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+		}
 	} else {
-		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
-		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
+		if orderDoc.OrderSide == "buy" {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + cost
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
+		} else {
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - cost
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
+		}
 	}
+
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
 		log.Println("Insufficient Balance")
 		return errors.New("Insufficient Balance")

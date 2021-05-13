@@ -33,7 +33,9 @@ func GetMarketPriceHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
 		return
 	}
-	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantity.String(), "price": price.String(), "side": sideParam})
+	quantityFloat, _ := quantity.Float64()
+	priceFloat, _ := price.Float64()
+	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantityFloat, "price": priceFloat, "side": sideParam})
 }
 func GetETHUSDHandler(c *gin.Context) {
 	log.Println(ETHUSD)

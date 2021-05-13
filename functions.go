@@ -27,6 +27,7 @@ func ProcessFull(orderlist []*ob.Order) (err error) {
 
 func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal) (err error) {
 	pQ, _ := partialQuantityProcessed.Float64()
+	wg.Add(1)
 	go PartialFulfillOrder(order.ID(), pQ, 0)
 	// if err != nil {
 	// 	log.Println(err)

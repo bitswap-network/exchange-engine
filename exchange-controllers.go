@@ -38,8 +38,8 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
-	wg.Add(1)
-	go CreateOrder(&order)
+	// add error handling
+	CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -53,18 +53,20 @@ func MarketOrderHandler(c *gin.Context) {
 	}
 	log.Println(exchange)
 	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
-
-	if ordersDone != nil {
+	// If any orders have been fulfilled, process them
+	if len(ordersDone) > 0 {
 		ProcessFull(ordersDone)
-		if partialDone != nil {
-			ProcessPartial(partialDone, partialQuantityProcessed)
-		}
+	}
+	// If any orders have been partially fulfilled, process them
+	if partialDone != nil {
+		ProcessPartial(partialDone, partialQuantityProcessed)
 	}
 	tP, _ := totalPrice.Float64()
-	pQp, _ := partialQuantityProcessed.Float64()
+	qL, _ := quantityLeft.Float64()
+	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
 		wg.Add(1)
-		go PartialFulfillOrder(order.OrderID, pQp, tP)
+		go PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
 
 	} else {
 		//add checks & validators
@@ -98,9 +100,8 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Created = time.Now()
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-
-	wg.Add(1)
-	go CreateOrder(&order)
+	//add error handling
+	CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
