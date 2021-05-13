@@ -64,7 +64,6 @@ func CreateOrder(order *model.OrderSchema) error {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
-	defer wg.Done()
 	order.ID = primitive.NewObjectID()
 	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
 	if err != nil {
@@ -170,7 +169,6 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		log.Println(err)
 		return err
 	}
-	log.Println(userDoc, orderDoc)
 	var bitcloutBalanceUpdated, etherBalanceUpdated float64
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
@@ -190,7 +188,6 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		}
 	}
 
-	log.Println(bitcloutBalanceUpdated, etherBalanceUpdated)
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
 		log.Println("Insufficient Balance")
 		return errors.New("Insufficient Balance")

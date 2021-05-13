@@ -38,8 +38,8 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
-	wg.Add(1)
-	go CreateOrder(&order)
+	// add error handling
+	CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -100,9 +100,8 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Created = time.Now()
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-
-	wg.Add(1)
-	go CreateOrder(&order)
+	//add error handling
+	CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
