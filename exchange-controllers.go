@@ -9,6 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	db "v1.1-fulfiller/db"
+	global "v1.1-fulfiller/global"
 	model "v1.1-fulfiller/models"
 	ob "v1.1-fulfiller/orderbook"
 )
@@ -39,7 +41,7 @@ func MarketOrderHandler(c *gin.Context) {
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	// add error handling
-	CreateOrder(&order)
+	db.CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -65,13 +67,13 @@ func MarketOrderHandler(c *gin.Context) {
 	qL, _ := quantityLeft.Float64()
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		wg.Add(1)
-		go PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
+		global.Wg.Add(1)
+		go db.PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
 
 	} else {
 		//add checks & validators
-		wg.Add(1)
-		go FulfillOrder(order.OrderID, tP)
+		global.Wg.Add(1)
+		go db.FulfillOrder(order.OrderID, tP)
 	}
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
@@ -101,7 +103,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 	//add error handling
-	CreateOrder(&order)
+	db.CreateOrder(&order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
@@ -143,8 +145,8 @@ func CancelOrderHandler(c *gin.Context) {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
-	wg.Add(1)
-	go CancelCompleteOrder(orderID.ID)
+	global.Wg.Add(1)
+	go db.CancelCompleteOrder(orderID.ID, "Order Cancelled by User")
 
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 }

@@ -10,13 +10,15 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	db "v1.1-fulfiller/db"
+	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
 func ProcessFull(orderlist []*ob.Order) (err error) {
 	for _, order := range orderlist {
-		wg.Add(1)
-		go FulfillOrder(order.ID(), 0)
+		global.Wg.Add(1)
+		go db.FulfillOrder(order.ID(), 0)
 		// if err != nil {
 		// 	log.Println(err)
 		// 	return err
@@ -27,8 +29,8 @@ func ProcessFull(orderlist []*ob.Order) (err error) {
 
 func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal) (err error) {
 	pQ, _ := partialQuantityProcessed.Float64()
-	wg.Add(1)
-	go PartialFulfillOrder(order.ID(), pQ, 0)
+	global.Wg.Add(1)
+	go db.PartialFulfillOrder(order.ID(), pQ, 0)
 	// if err != nil {
 	// 	log.Println(err)
 	// 	return err
@@ -59,8 +61,8 @@ func SetETHUSD() {
 	if err != nil {
 		log.Println(err)
 	}
-	ETHUSD = price
-	fmt.Println(ETHUSD)
+	global.ETHUSD = price
+	fmt.Println(global.ETHUSD)
 }
 
 func getJson(url string, target interface{}) error {

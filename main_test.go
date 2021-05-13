@@ -9,6 +9,7 @@ import (
 	unitTest "github.com/Valiben/gin_unit_test"
 	utils "github.com/Valiben/gin_unit_test/utils"
 	"github.com/shopspring/decimal"
+	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
@@ -40,7 +41,7 @@ func TestETHUSDRoute(t *testing.T) {
 		t.Errorf("ETHUSD Test Error: %v\n", err)
 		return
 	}
-	if respBody.Result != ETHUSD {
+	if respBody.Result != global.ETHUSD {
 		t.Errorf("Unexpected Response: %v\n", respBody)
 		return
 	}

@@ -3,9 +3,12 @@ package orderbook
 import (
 	"container/list"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/shopspring/decimal"
+	db "v1.1-fulfiller/db"
+	global "v1.1-fulfiller/global"
 )
 
 // OrderBook implements standard matching algorithm
@@ -44,9 +47,9 @@ type PriceLevel struct {
 //      partial      - not nil if your order has done but top order is not fully done
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
 //      quantityLeft - more than zero if it is not enought orders to process all quantity
-func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed, quantityLeft decimal.Decimal,fullPrice decimal.Decimal, err error) {
+func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed, quantityLeft decimal.Decimal, fullPrice decimal.Decimal, err error) {
 	if quantity.Sign() <= 0 {
-		return nil, nil, decimal.Zero,decimal.Zero,  decimal.Zero, ErrInvalidQuantity
+		return nil, nil, decimal.Zero, decimal.Zero, decimal.Zero, ErrInvalidQuantity
 	}
 	// fullPrice = decimal.Zero
 	var (
@@ -61,13 +64,13 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 		iter = ob.bids.MaxPriceQueue
 		sideToProcess = ob.bids
 	}
-	
+
 	for quantity.Sign() > 0 && sideToProcess.Len() > 0 {
 		bestPrice := iter()
 		ordersDone, partialDone, partialProcessed, quantityLeft, totalPrice := ob.processQueue(bestPrice, quantity)
 		done = append(done, ordersDone...)
 		partial = partialDone
-		fullPrice=fullPrice.Add(totalPrice)
+		fullPrice = fullPrice.Add(totalPrice)
 		partialQuantityProcessed = partialProcessed
 		quantity = quantityLeft
 	}
@@ -168,21 +171,44 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-
-		if quantityLeft.LessThan(headOrder.Quantity()) {
-			partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
-			partialQuantityProcessed = quantityLeft
-			totalPrice = totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
-			orderQueue.Update(headOrderEl, partial)
-			quantityLeft = decimal.Zero
+		if ob.validateBalance(headOrder) {
+			log.Println("validation passed")
+			if quantityLeft.LessThan(headOrder.Quantity()) {
+				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
+				partialQuantityProcessed = quantityLeft
+				totalPrice = totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
+				orderQueue.Update(headOrderEl, partial)
+				quantityLeft = decimal.Zero
+			} else {
+				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
+				totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
+				done = append(done, ob.CancelOrder(headOrder.ID()))
+			}
 		} else {
-			quantityLeft = quantityLeft.Sub(headOrder.Quantity())
-			totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
-			done = append(done, ob.CancelOrder(headOrder.ID()))
+			log.Println("validation failed")
+			global.Wg.Add(1)
+			go db.CancelCompleteOrder(headOrder.ID(), "Order Cancelled due to Insufficient Funds")
+			ob.CancelOrder(headOrder.ID())
 		}
 	}
-
 	return
+}
+
+func (ob *OrderBook) validateBalance(order *Order) bool {
+	balance, err := db.GetUserBalanceFromOrder(order.ID())
+	//IMPORTANT: must change - only for debug
+	if err != nil {
+		log.Println(err)
+		return true
+	}
+
+	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
+	totalQuantity, _ := (order.Quantity()).Float64()
+	if order.Side() == Buy {
+		return totalPrice/global.ETHUSD <= balance.Ether
+	} else {
+		return totalQuantity <= balance.Bitclout
+	}
 }
 
 // Order returns order by id
@@ -196,7 +222,6 @@ func (ob *OrderBook) Order(orderID string) *Order {
 }
 
 // Depth returns price levels and volume at price level
-
 
 // CancelOrder removes order with given ID from the order book
 func (ob *OrderBook) CancelOrder(orderID string) *Order {
@@ -317,7 +342,7 @@ func (ob *OrderBook) DepthMarshalJSON() ([]byte, error) {
 		}{
 			Asks: asks,
 			Bids: bids,
-		},"","  ",
+		}, "", "  ",
 	)
 }
 
