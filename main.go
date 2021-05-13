@@ -92,6 +92,8 @@ func main() {
 
 	fmt.Printf("Starting server at port 5050\n")
 	fmt.Println(os.Getenv("GIN_MODE"))
+	exDepth,_ :=exchange.DepthMarshalJSON()
+	fmt.Println(string(exDepth))
 	if err := router.Run("localhost:5050"); err != nil {
 		log.Fatal(err)
 	}

@@ -196,26 +196,7 @@ func (ob *OrderBook) Order(orderID string) *Order {
 }
 
 // Depth returns price levels and volume at price level
-func (ob *OrderBook) Depth() (asks, bids []*PriceLevel) {
-	level := ob.asks.MaxPriceQueue()
-	for level != nil {
-		asks = append(asks, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
-		})
-		level = ob.asks.LessThan(level.Price())
-	}
 
-	level = ob.bids.MaxPriceQueue()
-	for level != nil {
-		bids = append(bids, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
-		})
-		level = ob.bids.LessThan(level.Price())
-	}
-	return
-}
 
 // CancelOrder removes order with given ID from the order book
 func (ob *OrderBook) CancelOrder(orderID string) *Order {
@@ -286,6 +267,57 @@ func (ob *OrderBook) MarshalJSON() ([]byte, error) {
 			Asks: ob.asks,
 			Bids: ob.bids,
 		},
+	)
+}
+
+func (ob *OrderBook) Depth() (asks, bids []*PriceLevel) {
+	level := ob.asks.MaxPriceQueue()
+	for level != nil {
+		asks = append(asks, &PriceLevel{
+			Price:    level.Price(),
+			Quantity: level.Volume(),
+		})
+		level = ob.asks.LessThan(level.Price())
+	}
+
+	level = ob.bids.MaxPriceQueue()
+	for level != nil {
+		bids = append(bids, &PriceLevel{
+			Price:    level.Price(),
+			Quantity: level.Volume(),
+		})
+		level = ob.bids.LessThan(level.Price())
+	}
+	return
+}
+
+func (ob *OrderBook) DepthMarshalJSON() ([]byte, error) {
+	level := ob.asks.MaxPriceQueue()
+	var asks, bids []*PriceLevel
+	for level != nil {
+		asks = append(asks, &PriceLevel{
+			Price:    level.Price(),
+			Quantity: level.Volume(),
+		})
+		level = ob.asks.LessThan(level.Price())
+	}
+
+	level = ob.bids.MaxPriceQueue()
+	for level != nil {
+		bids = append(bids, &PriceLevel{
+			Price:    level.Price(),
+			Quantity: level.Volume(),
+		})
+		level = ob.bids.LessThan(level.Price())
+	}
+	return json.MarshalIndent(
+		&struct {
+			Asks []*PriceLevel `json:"asks"`
+			Bids []*PriceLevel `json:"bids"`
+		}{
+			Asks: asks,
+			Bids: bids,
+		},"","  ",
 	)
 }
 
