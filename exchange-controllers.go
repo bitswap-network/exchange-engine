@@ -53,18 +53,20 @@ func MarketOrderHandler(c *gin.Context) {
 	}
 	log.Println(exchange)
 	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
-
-	if ordersDone != nil {
+	// If any orders have been fulfilled, process them
+	if len(ordersDone) > 0 {
 		ProcessFull(ordersDone)
-		if partialDone != nil {
+	}
+	// If any orders have been partially fulfilled, process them
+	if partialDone != nil {
 			ProcessPartial(partialDone, partialQuantityProcessed)
 		}
-	}
 	tP, _ := totalPrice.Float64()
-	pQp, _ := partialQuantityProcessed.Float64()
+	qL, _ := quantityLeft.Float64()
+	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
 		wg.Add(1)
-		go PartialFulfillOrder(order.OrderID, pQp, tP)
+		go PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
 
 	} else {
 		//add checks & validators
