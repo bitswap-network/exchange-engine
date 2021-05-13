@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -34,4 +35,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 		return
 	}
 	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantity.String(), "price": price.String(), "side": sideParam})
+}
+func GetETHUSDHandler(c *gin.Context) {
+	c.SecureJSON(http.StatusOK, gin.H{"result": fmt.Sprintf("%f", ETHUSD)})
 }

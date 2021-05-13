@@ -66,7 +66,7 @@ func CreateOrder(order *model.OrderSchema) error {
 	return nil
 }
 
-func CancelCompleteOrder(orderID string) (err error) {
+func CancelCompleteOrder(orderID string) error {
 	client, ctx, cancel := mongoConnect()
 	defer cancel()
 	defer client.Disconnect(ctx)
@@ -74,14 +74,14 @@ func CancelCompleteOrder(orderID string) (err error) {
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	update := bson.M{"$set": bson.M{"error": "Cancelled by User", "complete": true, "completeTime": time.Now()}}
-	_, err = orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	_, err := orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func FulfillOrder(orderID string, cost float64) (err error) {
+func FulfillOrder(orderID string, cost float64) error {
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	client, ctx, cancel := mongoConnect()
@@ -91,11 +91,12 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 	db := client.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection("users")
-
-	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
+	//Finding order in database
+	err := orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
 	}
+	//finding user associated with order
 	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		return err
@@ -106,18 +107,18 @@ func FulfillOrder(orderID string, cost float64) (err error) {
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * orderDoc.OrderQuantity)
-			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * orderDoc.OrderQuantity / 3000)
+			etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * orderDoc.OrderQuantity)
-			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * orderDoc.OrderQuantity / 3000)
+			etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + cost
-			etherBalanceUpdated = userDoc.Balance.Ether - (cost / 3000)
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - cost
-			etherBalanceUpdated = userDoc.Balance.Ether + (cost / 3000)
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
 		}
 	}
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
@@ -162,10 +163,10 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	//update ether USD price var
 	if orderDoc.OrderSide == "buy" {
 		bitcloutBalanceUpdated = userDoc.Balance.Bitclout + (orderDoc.OrderPrice * partialQuantityProcessed)
-		etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
+		etherBalanceUpdated = userDoc.Balance.Ether - (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
 	} else {
 		bitcloutBalanceUpdated = userDoc.Balance.Bitclout - (orderDoc.OrderPrice * partialQuantityProcessed)
-		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / 3000)
+		etherBalanceUpdated = userDoc.Balance.Ether + (orderDoc.OrderPrice * partialQuantityProcessed / ETHUSD)
 	}
 	if bitcloutBalanceUpdated <= 0 || etherBalanceUpdated <= 0 {
 		log.Println("Insufficient Balance")

@@ -3,14 +3,14 @@ module v1.1-fulfiller
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.38.36 // indirect
+	github.com/aws/aws-sdk-go v1.38.36
 	github.com/danielkov/gin-helmet v0.0.0-20171108135313-1387e224435e
 	github.com/emirpasic/gods v1.12.0
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/validator/v10 v10.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/jasonlvhit/gocron v0.0.1 // indirect
+	github.com/jasonlvhit/gocron v0.0.1
 	github.com/joho/godotenv v1.3.0
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -22,6 +22,5 @@ require (
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect
 	golang.org/x/net v0.0.0-20210508051633-16afe75a6701 // indirect
 	golang.org/x/sys v0.0.0-20210507161434-a76c4d0a0096 // indirect
-	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

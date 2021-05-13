@@ -65,20 +65,11 @@ func MarketOrderHandler(c *gin.Context) {
 	if quantityLeft.IsPositive() {
 		wg.Add(1)
 		go PartialFulfillOrder(order.OrderID, pQp, tP)
-		// if err != nil {
-		// 	c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-		// 	log.Println(err)
-		// 	return
-		// }
+
 	} else {
 		//add checks & validators
 		wg.Add(1)
 		go FulfillOrder(order.OrderID, tP)
-		// if err != nil {
-		// 	c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-		// 	log.Println(err)
-		// 	return
-		// }
 	}
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
