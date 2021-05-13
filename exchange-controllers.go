@@ -68,13 +68,14 @@ func MarketOrderHandler(c *gin.Context) {
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
 		global.Wg.Add(1)
-		go db.PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
+		go db.PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP, &global.Wg, mongoSession)
 
 	} else {
 		//add checks & validators
 		global.Wg.Add(1)
-		go db.FulfillOrder(order.OrderID, tP)
+		go db.FulfillOrder(order.OrderID, tP, &global.Wg, mongoSession)
 	}
+	global.Wg.Wait()
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
 
@@ -146,7 +147,8 @@ func CancelOrderHandler(c *gin.Context) {
 		return
 	}
 	global.Wg.Add(1)
-	go db.CancelCompleteOrder(orderID.ID, "Order Cancelled by User")
+	go db.CancelCompleteOrder(orderID.ID, "Order Cancelled by User", &global.Wg, mongoSession)
 
+	global.Wg.Wait()
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 }

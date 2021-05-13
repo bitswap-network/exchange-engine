@@ -18,7 +18,7 @@ import (
 func ProcessFull(orderlist []*ob.Order) (err error) {
 	for _, order := range orderlist {
 		global.Wg.Add(1)
-		go db.FulfillOrder(order.ID(), 0)
+		go db.FulfillOrder(order.ID(), 0, &global.Wg, mongoSession)
 		// if err != nil {
 		// 	log.Println(err)
 		// 	return err
@@ -30,7 +30,7 @@ func ProcessFull(orderlist []*ob.Order) (err error) {
 func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal) (err error) {
 	pQ, _ := partialQuantityProcessed.Float64()
 	global.Wg.Add(1)
-	go db.PartialFulfillOrder(order.ID(), pQ, 0)
+	go db.PartialFulfillOrder(order.ID(), pQ, 0, &global.Wg, mongoSession)
 	// if err != nil {
 	// 	log.Println(err)
 	// 	return err
