@@ -171,7 +171,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		if ob.ValidateBalance(headOrder) {
+		if ob.validateBalance(headOrder) {
 			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
@@ -194,7 +194,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 	return
 }
 
-func (ob *OrderBook) ValidateBalance(order *Order) bool {
+func (ob *OrderBook) validateBalance(order *Order) bool {
 	balance, err := db.GetUserBalanceFromOrder(order.ID())
 	//IMPORTANT: must change - only for debug
 	if err != nil {
