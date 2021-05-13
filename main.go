@@ -66,6 +66,17 @@ func RouterSetup() *gin.Engine {
 	return router
 }
 
+func InitOrders(log bool) {
+	exchange.ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(50, 0), decimal.New(115, 0))
+
+	exchange.ProcessLimitOrder(ob.Sell, "uinqueID1", decimal.New(100, 0), decimal.New(110, 0))
+	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID", decimal.New(100, 0), decimal.New(90, 0))
+	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID1", decimal.New(50, 0), decimal.New(85, 0))
+	if log {
+		fmt.Println(exchange)
+	}
+}
+
 func main() {
 	go func() {
 		// Uncomment to run orderbook S3 backup script
@@ -75,14 +86,7 @@ func main() {
 	}()
 
 	//Adding test orders to book
-	exchange.ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(50, 0), decimal.New(115, 0))
-	fmt.Println(exchange)
-	exchange.ProcessLimitOrder(ob.Sell, "uinqueID1", decimal.New(100, 0), decimal.New(110, 0))
-	fmt.Println(exchange)
-	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID", decimal.New(100, 0), decimal.New(90, 0))
-	fmt.Println(exchange)
-	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID1", decimal.New(50, 0), decimal.New(85, 0))
-	fmt.Println(exchange)
+	InitOrders(true)
 
 	router := RouterSetup()
 
