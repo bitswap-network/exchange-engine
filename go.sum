@@ -1,4 +1,6 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/Valiben/gin_unit_test v0.0.0-20181205064931-674aee46d090 h1:sEh+aKc7XivRNlBKu5F8zqOktkJLyFUYQqaMrG/umhk=
+github.com/Valiben/gin_unit_test v0.0.0-20181205064931-674aee46d090/go.mod h1:R7THAtfNTnKrPkXX4dLl3Ug80AxnPqczbrOtGibHa/k=
 github.com/aws/aws-sdk-go v1.34.28/go.mod h1:H7NKnBqNVzoTJpGfLrQkkD+ytBA93eiDYi/+8rV9s48=
 github.com/aws/aws-sdk-go v1.38.36 h1:MiqzQY/IOFTX/jmGse7ThafD0eyOC4TrCLv2KY1v+bI=
 github.com/aws/aws-sdk-go v1.38.36/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
