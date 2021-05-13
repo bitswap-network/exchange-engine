@@ -20,6 +20,7 @@ import (
 var exchange = ob.NewOrderBook()
 var wg sync.WaitGroup
 var ETHUSD float64
+var ENV_MODE string
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
@@ -30,6 +31,8 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+	ENV_MODE = os.Getenv("ENV_MODE")
+	gin.SetMode(ENV_MODE)
 	SetETHUSD()
 	// Uncomment to use S3 saved orderbook state on launch
 	// recoverOrderbook := GetOrderbookS3()
@@ -73,9 +76,8 @@ func main() {
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
 	router.GET("/ethusd", GetMarketPriceHandler)
 
-	exchangeRouter := router.Group("/exchange")
-	// Uncomment to use internal server HMAC auth (comment out for testing)
-	// exchangeRouter := router.Group("/exchange", internalServerAuth())
+	//Debug mode bypasses server auth
+	exchangeRouter := router.Group("/exchange", internalServerAuth())
 
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
@@ -86,9 +88,8 @@ func main() {
 	})
 
 	fmt.Printf("Starting server at port 5050\n")
-
+	fmt.Println(os.Getenv("GIN_MODE"))
 	if err := router.Run("localhost:5050"); err != nil {
 		log.Fatal(err)
 	}
-
 }
