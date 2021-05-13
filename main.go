@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -45,8 +44,29 @@ func init() {
 	// }
 }
 
-func main() {
+func RouterSetup() *gin.Engine {
+	router := gin.Default()
 
+	router.Use(cors.Default())
+	router.Use(helmet.Default())
+
+	router.GET("/", rootHandler)
+	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
+	router.GET("/ethusd", GetMarketPriceHandler)
+	//Debug mode bypasses server auth
+	exchangeRouter := router.Group("/exchange", internalServerAuth())
+
+	exchangeRouter.POST("/market", MarketOrderHandler)
+	exchangeRouter.POST("/limit", LimitOrderHandler)
+	exchangeRouter.POST("/cancel", CancelOrderHandler)
+
+	router.NoRoute(func(c *gin.Context) {
+		c.AbortWithStatus(http.StatusNotFound)
+	})
+	return router
+}
+
+func main() {
 	go func() {
 		// Uncomment to run orderbook S3 backup script
 		// gocron.Every(60).Seconds().Do(UploadToS3, getOrderbookBytes(), "orderbook")
@@ -64,28 +84,7 @@ func main() {
 	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID1", decimal.New(50, 0), decimal.New(85, 0))
 	fmt.Println(exchange)
 
-	router := gin.Default()
-
-	router.Use(cors.Default())
-	router.Use(helmet.Default())
-
-	f, _ := os.Create("out.log")
-	gin.DefaultWriter = io.MultiWriter(f)
-
-	router.GET("/", rootHandler)
-	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
-	router.GET("/ethusd", GetMarketPriceHandler)
-
-	//Debug mode bypasses server auth
-	exchangeRouter := router.Group("/exchange", internalServerAuth())
-
-	exchangeRouter.POST("/market", MarketOrderHandler)
-	exchangeRouter.POST("/limit", LimitOrderHandler)
-	exchangeRouter.POST("/cancel", CancelOrderHandler)
-
-	router.NoRoute(func(c *gin.Context) {
-		c.AbortWithStatus(http.StatusNotFound)
-	})
+	router := RouterSetup()
 
 	fmt.Printf("Starting server at port 5050\n")
 	fmt.Println(os.Getenv("GIN_MODE"))
