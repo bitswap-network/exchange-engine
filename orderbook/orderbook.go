@@ -172,6 +172,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
 		if ob.ValidateBalance(headOrder) {
+			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
 				partialQuantityProcessed = quantityLeft
@@ -184,19 +185,21 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 				done = append(done, ob.CancelOrder(headOrder.ID()))
 			}
 		} else {
-			db.CancelCompleteOrder(headOrder.ID(),"Order Cancelled due to Insufficient Funds")
+			log.Println("validation failed")
+			global.Wg.Add(1)
+			go db.CancelCompleteOrder(headOrder.ID(),"Order Cancelled due to Insufficient Funds")
 			ob.CancelOrder(headOrder.ID())
 		}
 	}
-
 	return
 }
 
 func (ob *OrderBook) ValidateBalance(order *Order) bool {
 	balance, err := db.GetUserBalanceFromOrder(order.ID())
+	//IMPORTANT: must change - only for debug
 	if err != nil {
-		log.Println(err)
-		return false
+		log.Println(err)		
+		return true
 	}
 
 	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
