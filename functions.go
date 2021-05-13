@@ -54,11 +54,11 @@ type EthPriceAPIResult struct {
 func SetETHUSD() {
 	apiResp := new(EthPriceAPI)
 	getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", os.Getenv("ETHERSCAN_KEY")), apiResp)
-	fmt.Println(*apiResp)
-	ETHUSD, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
+	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
 	if err != nil {
 		log.Println(err)
 	}
+	ETHUSD = price
 	fmt.Println(ETHUSD)
 }
 
