@@ -41,7 +41,8 @@ func MarketOrderHandler(c *gin.Context) {
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	// add error handling
-	db.CreateOrder(&order)
+
+	db.CreateOrder(c.Request.Context(), &order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -49,6 +50,7 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
+
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
 		return
@@ -68,13 +70,14 @@ func MarketOrderHandler(c *gin.Context) {
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
 		global.Wg.Add(1)
-		go db.PartialFulfillOrder(order.OrderID, order.OrderQuantity-qL, tP)
+		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-qL, tP, &global.Wg)
 
 	} else {
 		//add checks & validators
 		global.Wg.Add(1)
-		go db.FulfillOrder(order.OrderID, tP)
+		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, tP, &global.Wg)
 	}
+	global.Wg.Wait()
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
 
@@ -103,7 +106,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 	//add error handling
-	db.CreateOrder(&order)
+	db.CreateOrder(c.Request.Context(), &order)
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
@@ -146,7 +149,8 @@ func CancelOrderHandler(c *gin.Context) {
 		return
 	}
 	global.Wg.Add(1)
-	go db.CancelCompleteOrder(orderID.ID, "Order Cancelled by User")
+	go db.CancelCompleteOrder(c.Copy().Request.Context(), orderID.ID, "Order Cancelled by User", &global.Wg)
 
+	global.Wg.Wait()
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 }

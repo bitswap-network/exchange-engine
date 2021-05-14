@@ -24,4 +24,5 @@ require (
 	golang.org/x/net v0.0.0-20210508051633-16afe75a6701 // indirect
 	golang.org/x/sys v0.0.0-20210507161434-a76c4d0a0096 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 )

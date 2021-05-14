@@ -12,6 +12,8 @@ import (
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
+	db "v1.1-fulfiller/db"
+	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
@@ -81,17 +83,32 @@ func main() {
 		gocron.Every(5).Seconds().Do(SetETHUSD)
 		<-gocron.Start()
 	}()
-
 	//Adding test orders to book
 	InitOrders(true)
 
-	router := RouterSetup()
+	// mongoDBDialInfo := &mgo.DialInfo{
+	// 	Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
+	// 	Timeout:  5 * time.Second,
+	// 	Database: os.Getenv("MONGODB_DATABASE"),
+	// 	Username: os.Getenv("MONGODB_USERNAME"),
+	// 	Password: os.Getenv("MONGODB_PASSWORD"),
+	// }
+	// Create a session which maintains a pool of socket connections
+	// to our MongoDB.
+
+	client, cancel := db.MongoConnect()
+	defer cancel()
+	// global.MongoSession.SetMode(mgo.Monotonic, true)
+	global.Api = global.Server{
+		Router: RouterSetup(),
+		Mongo:  client,
+	}
 
 	fmt.Printf("Starting server at port 5050\n")
 	fmt.Println(os.Getenv("GIN_MODE"))
 	exDepth, _ := exchange.DepthMarshalJSON()
 	fmt.Println(string(exDepth))
-	if err := router.Run("localhost:5050"); err != nil {
+	if err := global.Api.Router.Run("localhost:5050"); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,7 +31,7 @@ func userCollection() string {
 	}
 }
 
-func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
+func MongoConnect() (*mongo.Client, context.CancelFunc) {
 	log.Print("connecting to mongodb")
 	username := os.Getenv("MONGODB_USERNAME")
 	password := os.Getenv("MONGODB_PASSWORD")
@@ -57,17 +58,15 @@ func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 	}
 
 	fmt.Println("Connected to MongoDB!")
-	return client, ctx, cancel
+	return client, cancel
 }
 
-func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err error) {
+func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *model.UserBalance, err error) {
 	log.Printf("fetching user balance from: %v\n", orderID)
 	var userDoc *model.UserSchema
 	var orderDoc *model.OrderSchema
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
-	db := client.Database(database)
+
+	db := global.Api.Mongo.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&userDoc)
@@ -78,30 +77,28 @@ func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err er
 	if err != nil {
 		return nil, err
 	}
+	log.Println("done fetching balance")
 	return userDoc.Balance, nil
 }
 
-func CreateOrder(order *model.OrderSchema) error {
+func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
 	log.Printf("create order: %v\n", order.OrderID)
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
 	order.ID = primitive.NewObjectID()
-	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
+	_, err := global.Api.Mongo.Database(database).Collection("orders").InsertOne(ctx, order)
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
 	}
+	log.Println("done creating order")
 	return nil
+
 }
 
-func CancelCompleteOrder(orderID string, errorString string) error {
+func CancelCompleteOrder(ctx context.Context, orderID string, errorString string, waitGroup *sync.WaitGroup) error {
 	log.Printf("cancel complete: %v\n", orderID)
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
 	defer global.Wg.Done()
-	db := client.Database(database)
+
+	db := global.Api.Mongo.Database(database)
 	orders := db.Collection("orders")
 	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now()}}
 	_, err := orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
@@ -111,15 +108,13 @@ func CancelCompleteOrder(orderID string, errorString string) error {
 	return nil
 }
 
-func FulfillOrder(orderID string, cost float64) error {
+func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *sync.WaitGroup) error {
 	log.Printf("fulfill: %v\n", orderID)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
 	defer global.Wg.Done()
-	db := client.Database(database)
+
+	db := global.Api.Mongo.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
 	//Finding order in database
@@ -162,22 +157,20 @@ func FulfillOrder(orderID string, cost float64) error {
 		return err
 	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
-	x, err := users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
-	log.Println("x: ", x)
+	_, err = users.UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64) (err error) {
+
+func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64, waitGroup *sync.WaitGroup) (err error) {
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
 	defer global.Wg.Done()
-	db := client.Database(database)
+
+	db := global.Api.Mongo.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
 
