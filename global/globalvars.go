@@ -1,14 +1,17 @@
 package global
 
 import (
-	"context"
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var ETHUSD float64
 var Wg sync.WaitGroup
-var MongoClient *mongo.Client
-var MongoContext context.Context
-var MongoContextCancel context.CancelFunc
+var Api Server
+
+type Server struct {
+	Router *gin.Engine
+	Mongo  *mongo.Client
+}

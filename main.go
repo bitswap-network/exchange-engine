@@ -83,6 +83,8 @@ func main() {
 		gocron.Every(5).Seconds().Do(SetETHUSD)
 		<-gocron.Start()
 	}()
+	//Adding test orders to book
+	InitOrders(true)
 
 	// mongoDBDialInfo := &mgo.DialInfo{
 	// 	Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
@@ -94,20 +96,19 @@ func main() {
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
 
-	global.MongoClient, global.MongoContext, global.MongoContextCancel = db.MongoConnect()
-
+	client, cancel := db.MongoConnect()
+	defer cancel()
 	// global.MongoSession.SetMode(mgo.Monotonic, true)
-
-	//Adding test orders to book
-	InitOrders(true)
-
-	router := RouterSetup()
+	global.Api = global.Server{
+		Router: RouterSetup(),
+		Mongo:  client,
+	}
 
 	fmt.Printf("Starting server at port 5050\n")
 	fmt.Println(os.Getenv("GIN_MODE"))
 	exDepth, _ := exchange.DepthMarshalJSON()
 	fmt.Println(string(exDepth))
-	if err := router.Run("localhost:5050"); err != nil {
+	if err := global.Api.Router.Run("localhost:5050"); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -2,6 +2,7 @@ package orderbook
 
 import (
 	"container/list"
+	"context"
 	"encoding/json"
 	"log"
 	"time"
@@ -187,7 +188,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		} else {
 			log.Println("validation failed")
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(headOrder.ID(), "Order Cancelled due to Insufficient Funds", &global.Wg)
+			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order Cancelled due to Insufficient Funds", &global.Wg)
 			ob.CancelOrder(headOrder.ID())
 		}
 	}
@@ -195,7 +196,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 }
 
 func (ob *OrderBook) validateBalance(order *Order) bool {
-	balance, err := db.GetUserBalanceFromOrder(order.ID())
+	balance, err := db.GetUserBalanceFromOrder(context.TODO(), order.ID())
 	//IMPORTANT: must change - only for debug
 	if err != nil {
 		log.Println(err)
