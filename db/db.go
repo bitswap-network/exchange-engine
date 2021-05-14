@@ -1,13 +1,13 @@
 package db
 
 import (
-	"labix.org/v2/mgo"
 	"context"
 	"errors"
 	"fmt"
-	"sync"
+	"labix.org/v2/mgo"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -100,7 +100,7 @@ func CreateOrder(order *model.OrderSchema) error {
 func CancelCompleteOrder(orderID string, errorString string, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) error {
 	log.Printf("cancel complete: %v\n", orderID)
 	defer global.Wg.Done()
-  sessionCopy := mongoSession.Copy()
+	sessionCopy := mongoSession.Copy()
 	defer sessionCopy.Close()
 
 	db := sessionCopy.DB(database)
@@ -118,7 +118,7 @@ func FulfillOrder(orderID string, cost float64, waitGroup *sync.WaitGroup, mongo
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	defer global.Wg.Done()
-  sessionCopy := mongoSession.Copy()
+	sessionCopy := mongoSession.Copy()
 	defer sessionCopy.Close()
 
 	db := sessionCopy.DB(database)
@@ -176,7 +176,7 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	defer global.Wg.Done()
-  sessionCopy := mongoSession.Copy()
+	sessionCopy := mongoSession.Copy()
 	defer sessionCopy.Close()
 
 	db := sessionCopy.DB(database)

@@ -187,7 +187,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		} else {
 			log.Println("validation failed")
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(headOrder.ID(), "Order Cancelled due to Insufficient Funds", &global.Wg, mongoSession)
+			go db.CancelCompleteOrder(headOrder.ID(), "Order Cancelled due to Insufficient Funds", &global.Wg, global.MongoSession)
 			ob.CancelOrder(headOrder.ID())
 		}
 	}

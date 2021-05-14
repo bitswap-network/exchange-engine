@@ -1,12 +1,13 @@
 package main
 
 import (
-	"labix.org/v2/mgo"
 	"fmt"
 	"log"
-	"time"
 	"net/http"
 	"os"
+	"time"
+
+	"labix.org/v2/mgo"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -14,6 +15,7 @@ import (
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
+	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
@@ -85,20 +87,21 @@ func main() {
 	}()
 
 	mongoDBDialInfo := &mgo.DialInfo{
-	  Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
-	  Timeout:  5 * time.Second,
-	  Database: os.Getenv("MONGODB_DATABASE"),
-	  Username: os.Getenv("MONGODB_USERNAME"),
-	  Password: os.Getenv("MONGODB_PASSWORD"),
+		Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
+		Timeout:  5 * time.Second,
+		Database: os.Getenv("MONGODB_DATABASE"),
+		Username: os.Getenv("MONGODB_USERNAME"),
+		Password: os.Getenv("MONGODB_PASSWORD"),
 	}
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
-	mongoSession, err := mgo.DialWithInfo(mongoDBDialInfo)
+	var err error
+	global.MongoSession, err = mgo.DialWithInfo(mongoDBDialInfo)
 	if err != nil {
-	  log.Fatalf("CreateSession: %s\n", err)
+		log.Fatalf("CreateSession: %s\n", err)
 	}
 
-	 mongoSession.SetMode(mgo.Monotonic, true)
+	global.MongoSession.SetMode(mgo.Monotonic, true)
 
 	//Adding test orders to book
 	InitOrders(true)
