@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"labix.org/v2/mgo"
 	"log"
 	"os"
 	"sync"
@@ -32,7 +31,7 @@ func userCollection() string {
 	}
 }
 
-func mongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
+func MongoConnect() (*mongo.Client, context.Context, context.CancelFunc) {
 	log.Print("connecting to mongodb")
 	username := os.Getenv("MONGODB_USERNAME")
 	password := os.Getenv("MONGODB_PASSWORD")
@@ -66,17 +65,16 @@ func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err er
 	log.Printf("fetching user balance from: %v\n", orderID)
 	var userDoc *model.UserSchema
 	var orderDoc *model.OrderSchema
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
-	db := client.Database(database)
+
+	defer global.MongoContextCancel()
+	db := global.MongoClient.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
-	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&userDoc)
+	err = orders.FindOne(global.MongoContext, bson.M{"orderID": orderID}).Decode(&userDoc)
 	if err != nil {
 		return nil, err
 	}
-	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	err = users.FindOne(global.MongoContext, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +83,9 @@ func GetUserBalanceFromOrder(orderID string) (balance *model.UserBalance, err er
 
 func CreateOrder(order *model.OrderSchema) error {
 	log.Printf("create order: %v\n", order.OrderID)
-	client, ctx, cancel := mongoConnect()
-	defer cancel()
-	defer client.Disconnect(ctx)
+	defer global.MongoContextCancel()
 	order.ID = primitive.NewObjectID()
-	_, err := client.Database(database).Collection("orders").InsertOne(ctx, order)
+	_, err := global.MongoClient.Database(database).Collection("orders").InsertOne(global.MongoContext, order)
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
@@ -97,41 +93,39 @@ func CreateOrder(order *model.OrderSchema) error {
 	return nil
 }
 
-func CancelCompleteOrder(orderID string, errorString string, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) error {
+func CancelCompleteOrder(orderID string, errorString string, waitGroup *sync.WaitGroup) error {
 	log.Printf("cancel complete: %v\n", orderID)
 	defer global.Wg.Done()
-	sessionCopy := mongoSession.Copy()
-	defer sessionCopy.Close()
+	defer global.MongoContextCancel()
 
-	db := sessionCopy.DB(database)
-	orders := db.C("orders")
+	db := global.MongoClient.Database(database)
+	orders := db.Collection("orders")
 	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now()}}
-	err := orders.Update(bson.M{"orderID": orderID}, update)
+	_, err := orders.UpdateOne(global.MongoContext, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func FulfillOrder(orderID string, cost float64, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) error {
+func FulfillOrder(orderID string, cost float64, waitGroup *sync.WaitGroup) error {
 	log.Printf("fulfill: %v\n", orderID)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	defer global.Wg.Done()
-	sessionCopy := mongoSession.Copy()
-	defer sessionCopy.Close()
+	defer global.MongoContextCancel()
 
-	db := sessionCopy.DB(database)
-	orders := db.C("orders")
-	users := db.C(userCollection())
+	db := global.MongoClient.Database(database)
+	orders := db.Collection("orders")
+	users := db.Collection(userCollection())
 	//Finding order in database
-	err := orders.Find(bson.M{"orderID": orderID}).One(&orderDoc)
+	err := orders.FindOne(global.MongoContext, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		return err
 	}
 	log.Println(orderDoc)
 	//finding user associated with order
-	err = users.Find(bson.M{"username": orderDoc.Username}).One(&userDoc)
+	err = users.FindOne(global.MongoContext, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		return err
 	}
@@ -159,36 +153,35 @@ func FulfillOrder(orderID string, cost float64, waitGroup *sync.WaitGroup, mongo
 		return errors.New("Insufficient Balance")
 	}
 	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
-	err = orders.Update(bson.M{"orderID": orderID}, update)
+	_, err = orders.UpdateOne(global.MongoContext, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
 	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
-	err = users.Update(bson.M{"username": orderDoc.Username}, update)
+	_, err = users.UpdateOne(global.MongoContext, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) (err error) {
+func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost float64, waitGroup *sync.WaitGroup) (err error) {
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
 	defer global.Wg.Done()
-	sessionCopy := mongoSession.Copy()
-	defer sessionCopy.Close()
+	defer global.MongoContextCancel()
 
-	db := sessionCopy.DB(database)
-	orders := db.C("orders")
-	users := db.C(userCollection())
+	db := global.MongoClient.Database(database)
+	orders := db.Collection("orders")
+	users := db.Collection(userCollection())
 
-	err = orders.Find(bson.M{"orderID": orderID}).One(&orderDoc)
+	err = orders.FindOne(global.MongoContext, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	err = users.Find(bson.M{"username": orderDoc.Username}).One(&userDoc)
+	err = users.FindOne(global.MongoContext, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -217,13 +210,13 @@ func PartialFulfillOrder(orderID string, partialQuantityProcessed float64, cost 
 		return errors.New("Insufficient Balance")
 	}
 	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
-	err = orders.Update(bson.M{"orderID": orderID}, update)
+	_, err = orders.UpdateOne(global.MongoContext, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		log.Println("Insufficient Balance")
 		return err
 	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
-	err = users.Update(bson.M{"username": orderDoc.Username}, update)
+	_, err = users.UpdateOne(global.MongoContext, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		log.Println("Insufficient Balance")
 		return err

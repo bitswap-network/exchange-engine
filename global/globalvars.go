@@ -1,11 +1,14 @@
 package global
 
 import (
+	"context"
 	"sync"
 
-	"labix.org/v2/mgo"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var ETHUSD float64
 var Wg sync.WaitGroup
-var MongoSession *mgo.Session
+var MongoClient *mongo.Client
+var MongoContext context.Context
+var MongoContextCancel context.CancelFunc
