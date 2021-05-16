@@ -9,12 +9,14 @@ import (
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
+	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 var exchange = ob.NewOrderBook()

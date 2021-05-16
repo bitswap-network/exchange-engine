@@ -92,6 +92,10 @@ github.com/go-stack/stack
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.3
 github.com/golang/snappy
+# github.com/heroku/x v0.0.28
+## explicit
+github.com/heroku/x/hmetrics
+github.com/heroku/x/hmetrics/onload
 # github.com/jasonlvhit/gocron v0.0.1
 ## explicit
 github.com/jasonlvhit/gocron
