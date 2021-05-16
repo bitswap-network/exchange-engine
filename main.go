@@ -96,6 +96,12 @@ func main() {
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
 
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
+
 	client, cancel := db.MongoConnect()
 	defer cancel()
 	// global.MongoSession.SetMode(mgo.Monotonic, true)
@@ -108,7 +114,7 @@ func main() {
 	fmt.Println(os.Getenv("GIN_MODE"))
 	exDepth, _ := exchange.DepthMarshalJSON()
 	fmt.Println(string(exDepth))
-	if err := global.Api.Router.Run("localhost:5050"); err != nil {
+	if err := global.Api.Router.Run(":"+port); err != nil {
 		log.Fatal(err)
 	}
 }
