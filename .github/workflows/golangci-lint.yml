@@ -7,7 +7,6 @@ on:
       - master
       - main
       - staging
-      - production
   pull_request:
 jobs:
   golangci:
