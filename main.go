@@ -11,12 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
-	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
-	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 var exchange = ob.NewOrderBook()
@@ -27,12 +25,12 @@ func rootHandler(c *gin.Context) {
 }
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	ENV_MODE = os.Getenv("ENV_MODE")
-	gin.SetMode(ENV_MODE)
+	// // err := godotenv.Load()
+	// // if err != nil {
+	// // 	log.Fatal("Error loading .env file")
+	// // }
+	// ENV_MODE = os.Getenv("ENV_MODE")
+	// gin.SetMode(ENV_MODE)
 	SetETHUSD()
 	// Uncomment to use S3 saved orderbook state on launch
 	// recoverOrderbook := GetOrderbookS3()
