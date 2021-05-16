@@ -1,7 +1,7 @@
 module v1.1-fulfiller
 
 go 1.16
-
+// +heroku goVersion 1.16
 require (
 	github.com/Valiben/gin_unit_test v0.0.0-20181205064931-674aee46d090
 	github.com/aws/aws-sdk-go v1.38.40
