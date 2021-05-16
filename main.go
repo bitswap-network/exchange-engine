@@ -9,6 +9,7 @@ import (
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
 	"github.com/shopspring/decimal"
@@ -27,7 +28,7 @@ func rootHandler(c *gin.Context) {
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file")
 	}
 	ENV_MODE = os.Getenv("ENV_MODE")
 	gin.SetMode(ENV_MODE)
@@ -96,6 +97,12 @@ func main() {
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
 
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
+
 	client, cancel := db.MongoConnect()
 	defer cancel()
 	// global.MongoSession.SetMode(mgo.Monotonic, true)
@@ -108,7 +115,7 @@ func main() {
 	fmt.Println(os.Getenv("GIN_MODE"))
 	exDepth, _ := exchange.DepthMarshalJSON()
 	fmt.Println(string(exDepth))
-	if err := global.Api.Router.Run("localhost:5050"); err != nil {
+	if err := global.Api.Router.Run(":"+port); err != nil {
 		log.Fatal(err)
 	}
 }
