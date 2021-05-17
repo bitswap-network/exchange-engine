@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+  "time"
+  "sync"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -77,6 +79,38 @@ func InitOrders(log bool) {
 	}
 }
 
+
+func TestLimitOrders(log bool, numOrders int) {
+  start := time.Now()
+  defer func() {
+      fmt.Println("Execution Time: ", time.Since(start))
+  }()
+
+  var wg sync.WaitGroup
+
+  for id := 0; id < numOrders; id++ {
+    wg.Add(1)
+    go func(id int) {
+      orderIdBuy := fmt.Sprint("order", id)
+      orderIdSell := fmt.Sprint("order", id)
+
+      fmt.Println(orderIdBuy, orderIdSell)
+
+      exchange.ProcessLimitOrder(ob.Sell, orderIdSell, decimal.New(50, 0), decimal.New(115, 0))
+      exchange.ProcessLimitOrder(ob.Buy, orderIdBuy, decimal.New(50, 0), decimal.New(115, 0))
+
+      wg.Done()
+    }(id)
+  }
+
+  wg.Wait()
+
+	if log {
+		fmt.Println(exchange)
+	}
+}
+
+
 func main() {
 	go func() {
 		// Uncomment to run orderbook S3 backup script
@@ -97,7 +131,8 @@ func main() {
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
 
-	port := os.Getenv("PORT")
+	// port := os.Getenv("PORT")
+  port := "5050"
 
 	if port == "" {
 		log.Fatal("$PORT must be set")

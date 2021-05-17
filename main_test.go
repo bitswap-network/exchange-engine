@@ -97,3 +97,13 @@ func TestMarketPriceRoute(t *testing.T) {
 		return
 	}
 }
+
+func LoadTestMarketOrder(t *testing.T) {
+  TestLimitOrders(false, 100)
+}
+
+func LoadTestLimitOrder(t *testing.T) {
+}
+
+func LoadTestCancelOrder(t *testing.T) {
+}
