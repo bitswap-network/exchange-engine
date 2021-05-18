@@ -63,6 +63,7 @@ func GetOrderbookS3() (data []byte) {
 		return nil
 	}
 	s := resp.Contents[len(resp.Contents)-1]
+	log.Println(resp.Contents)
 	buf := aws.NewWriteAtBuffer([]byte{})
 	_, err = downloader.Download(buf,
 		&s3.GetObjectInput{

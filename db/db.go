@@ -81,6 +81,17 @@ func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *mode
 	return userDoc.Balance, nil
 }
 
+func CreateDepthLog(ctx context.Context, depthLog *model.DepthSchema) error {
+	log.Println("create depth log")
+	_, err := global.Api.Mongo.Database(database).Collection("depths").InsertOne(ctx, depthLog)
+	if err != nil {
+		log.Printf("Could not create depth log: %v", err)
+		return err
+	}
+	log.Println("done creating depth log")
+	return nil
+}
+
 func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
 	log.Printf("create order: %v\n", order.OrderID)
 	order.ID = primitive.NewObjectID()
@@ -91,7 +102,6 @@ func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
 	}
 	log.Println("done creating order")
 	return nil
-
 }
 
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string, waitGroup *sync.WaitGroup) error {

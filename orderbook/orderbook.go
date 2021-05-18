@@ -10,6 +10,7 @@ import (
 	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
+	model "v1.1-fulfiller/models"
 )
 
 // OrderBook implements standard matching algorithm
@@ -198,7 +199,7 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 }
 
 func (ob *OrderBook) Sanitize() {
-	for oid,order := range ob.orders {
+	for oid, order := range ob.orders {
 		log.Printf("Validating: %s\n", oid)
 		if !ob.validateBalance(order.Value.(*Order)) {
 			log.Printf("Validation failed for: %s\n", oid)
@@ -332,34 +333,47 @@ func (ob *OrderBook) Depth() (asks, bids []*PriceLevel) {
 	return
 }
 
-func (ob *OrderBook) DepthMarshalJSON() ([]byte, error) {
+func (ob *OrderBook) DepthMarshalJSON() (*model.DepthSchema, error) {
+	buyMarketPrice, err := ob.CalculateMarketPrice(Buy, decimal.NewFromInt(1))
+	if err != nil {
+		return nil, err
+	}
+	sellMarketPrice, err := ob.CalculateMarketPrice(Sell, decimal.NewFromInt(1))
+	if err != nil {
+		return nil, err
+	}
+	buyMarketPriceFloat, _ := buyMarketPrice.Float64()
+	sellMarketPriceFloat, _ := sellMarketPrice.Float64()
 	level := ob.asks.MaxPriceQueue()
-	var asks, bids []*PriceLevel
+	var asks, bids []*model.PriceLevel
 	for level != nil {
-		asks = append(asks, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
+		priceFloat, _ := level.Price().Float64()
+		volumeFloat, _ := level.Volume().Float64()
+		asks = append(asks, &model.PriceLevel{
+			Price:    priceFloat,
+			Quantity: volumeFloat,
 		})
 		level = ob.asks.LessThan(level.Price())
 	}
 
 	level = ob.bids.MaxPriceQueue()
 	for level != nil {
-		bids = append(bids, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
+		priceFloat, _ := level.Price().Float64()
+		volumeFloat, _ := level.Volume().Float64()
+		bids = append(bids, &model.PriceLevel{
+			Price:    priceFloat,
+			Quantity: volumeFloat,
 		})
 		level = ob.bids.LessThan(level.Price())
 	}
-	return json.MarshalIndent(
-		&struct {
-			Asks []*PriceLevel `json:"asks"`
-			Bids []*PriceLevel `json:"bids"`
-		}{
-			Asks: asks,
-			Bids: bids,
-		}, "", "  ",
-	)
+	return &model.DepthSchema{
+		TimeStamp:  time.Now(),
+		MarketBuy:  buyMarketPriceFloat,
+		MarketSell: sellMarketPriceFloat,
+		Asks:       asks,
+		Bids:       bids,
+	}, nil
+
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface

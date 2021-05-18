@@ -34,14 +34,15 @@ func init() {
 	gin.SetMode(ENV_MODE)
 	SetETHUSD()
 	// Uncomment to use S3 saved orderbook state on launch
-	// recoverOrderbook := GetOrderbookS3()
-	// if recoverOrderbook != nil {
-	// 	log.Println("unmarshalling fetched orderbook")
-	// 	err = exchange.UnmarshalJSON(recoverOrderbook)
-	// 	if err != nil {
-	// 		log.Println("Error loading fetched orderbook")
-	// 	}
-	// }
+	recoverOrderbook := GetOrderbookS3()
+	if recoverOrderbook != nil {
+		log.Println("unmarshalling fetched orderbook")
+		err = exchange.UnmarshalJSON(recoverOrderbook)
+		if err != nil {
+			log.Println("Error loading fetched orderbook")
+		}
+		log.Println(exchange.String())
+	}
 }
 
 func RouterSetup() *gin.Engine {
@@ -59,6 +60,7 @@ func RouterSetup() *gin.Engine {
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
 	exchangeRouter.POST("/cancel", CancelOrderHandler)
+	exchangeRouter.POST("/sanitize", SanitizeHandler)
 
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
@@ -81,12 +83,12 @@ func InitOrders(log bool) {
 func main() {
 	go func() {
 		// Uncomment to run orderbook S3 backup script
-		// gocron.Every(60).Seconds().Do(UploadToS3, getOrderbookBytes(), "orderbook")
+		gocron.Every(30).Minutes().Do(UploadToS3, getOrderbookBytes(), "orderbook")
 		gocron.Every(5).Seconds().Do(SetETHUSD)
+		gocron.Every(5).Minutes().Do(LogDepth)
 		<-gocron.Start()
 	}()
 	//Adding test orders to book
-	
 
 	port := os.Getenv("PORT")
 

@@ -66,6 +66,17 @@ func SetETHUSD() {
 	fmt.Println(global.ETHUSD)
 }
 
+func LogDepth() {
+	depthMarshal, err := exchange.DepthMarshalJSON()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	db.CreateDepthLog(context.TODO(), depthMarshal)
+
+}
+
 func getJson(url string, target interface{}) error {
 	r, err := http.Get(url)
 	if err != nil {

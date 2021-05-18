@@ -15,6 +15,11 @@ import (
 	ob "v1.1-fulfiller/orderbook"
 )
 
+func SanitizeHandler(c *gin.Context) {
+	exchange.Sanitize()
+	c.String(http.StatusOK, "OK")
+}
+
 func MarketOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
