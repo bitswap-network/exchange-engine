@@ -21,6 +21,7 @@ func internalServerAuth() gin.HandlerFunc {
 			if !ok {
 				c.String(http.StatusBadRequest, "Where da signature at doe?")
 			}
+
 			mac := hmac.New(sha256.New, []byte(authKey))
 			messageBuffer := new(bytes.Buffer)
 			messageBuffer.ReadFrom(c.Request.Body)

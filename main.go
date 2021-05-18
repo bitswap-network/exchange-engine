@@ -75,6 +75,7 @@ func InitOrders(log bool) {
 	if log {
 		fmt.Println(exchange)
 	}
+
 }
 
 func main() {
@@ -87,20 +88,11 @@ func main() {
 	//Adding test orders to book
 	InitOrders(true)
 
-	// mongoDBDialInfo := &mgo.DialInfo{
-	// 	Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
-	// 	Timeout:  5 * time.Second,
-	// 	Database: os.Getenv("MONGODB_DATABASE"),
-	// 	Username: os.Getenv("MONGODB_USERNAME"),
-	// 	Password: os.Getenv("MONGODB_PASSWORD"),
-	// }
-	// Create a session which maintains a pool of socket connections
-	// to our MongoDB.
-
 	port := os.Getenv("PORT")
 
 	if port == "" {
-		log.Fatal("$PORT must be set")
+		port = "5050"
+		log.Println("$PORT must be set")
 	}
 
 	client, cancel := db.MongoConnect()
@@ -110,12 +102,9 @@ func main() {
 		Router: RouterSetup(),
 		Mongo:  client,
 	}
-
-	fmt.Printf("Starting server at port 5050\n")
+	fmt.Printf("Starting server at port %s\n", port)
 	fmt.Println(os.Getenv("GIN_MODE"))
-	exDepth, _ := exchange.DepthMarshalJSON()
-	fmt.Println(string(exDepth))
-	if err := global.Api.Router.Run(":"+port); err != nil {
+	if err := global.Api.Router.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }

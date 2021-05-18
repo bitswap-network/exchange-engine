@@ -77,6 +77,7 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 	}
 
 	quantityLeft = quantity
+	ob.Sanitize()
 	return
 }
 
@@ -162,6 +163,7 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
+	ob.Sanitize()
 	return
 }
 
@@ -188,13 +190,40 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 		} else {
 			log.Println("validation failed")
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order Cancelled due to Insufficient Funds", &global.Wg)
+			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.", &global.Wg)
 			ob.CancelOrder(headOrder.ID())
 		}
 	}
 	return
 }
 
+func (ob *OrderBook) Sanitize() {
+
+	queue := ob.asks.MaxPriceQueue()
+	iter := queue.orders.Front()
+	for iter != nil {
+		order := iter.Value.(*Order)
+		if !ob.validateBalance(order) {
+			log.Printf("Validation failed for: %s\n", order.ID())
+			global.Wg.Add(1)
+			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
+			ob.CancelOrder(order.ID())
+		}
+	}
+	queue = ob.bids.MaxPriceQueue()
+	iter = queue.orders.Front()
+	for iter != nil {
+		order := iter.Value.(*Order)
+		if !ob.validateBalance(order) {
+			log.Printf("Validation failed for: %s\n", order.ID())
+			global.Wg.Add(1)
+			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
+			ob.CancelOrder(order.ID())
+		}
+	}
+}
+
+// internal user balance
 func (ob *OrderBook) validateBalance(order *Order) bool {
 	balance, err := db.GetUserBalanceFromOrder(context.TODO(), order.ID())
 	//IMPORTANT: must change - only for debug
