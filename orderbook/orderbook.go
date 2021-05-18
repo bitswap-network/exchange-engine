@@ -198,27 +198,13 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 }
 
 func (ob *OrderBook) Sanitize() {
-
-	queue := ob.asks.MaxPriceQueue()
-	iter := queue.orders.Front()
-	for iter != nil {
-		order := iter.Value.(*Order)
-		if !ob.validateBalance(order) {
-			log.Printf("Validation failed for: %s\n", order.ID())
+	for oid,order := range ob.orders {
+		log.Printf("Validating: %s\n", oid)
+		if !ob.validateBalance(order.Value.(*Order)) {
+			log.Printf("Validation failed for: %s\n", oid)
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
-			ob.CancelOrder(order.ID())
-		}
-	}
-	queue = ob.bids.MaxPriceQueue()
-	iter = queue.orders.Front()
-	for iter != nil {
-		order := iter.Value.(*Order)
-		if !ob.validateBalance(order) {
-			log.Printf("Validation failed for: %s\n", order.ID())
-			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
-			ob.CancelOrder(order.ID())
+			go db.CancelCompleteOrder(context.TODO(), oid, "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
+			ob.CancelOrder(oid)
 		}
 	}
 }

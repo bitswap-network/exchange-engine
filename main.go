@@ -86,7 +86,7 @@ func main() {
 		<-gocron.Start()
 	}()
 	//Adding test orders to book
-	InitOrders(true)
+	
 
 	port := os.Getenv("PORT")
 
@@ -94,7 +94,7 @@ func main() {
 		port = "5050"
 		log.Println("$PORT must be set")
 	}
-
+	//Must wait for mongo to connect before doing orderbook ops
 	client, cancel := db.MongoConnect()
 	defer cancel()
 	// global.MongoSession.SetMode(mgo.Monotonic, true)
@@ -102,6 +102,7 @@ func main() {
 		Router: RouterSetup(),
 		Mongo:  client,
 	}
+	InitOrders(true)
 	fmt.Printf("Starting server at port %s\n", port)
 	fmt.Println(os.Getenv("GIN_MODE"))
 	if err := global.Api.Router.Run(":" + port); err != nil {
