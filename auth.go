@@ -2,16 +2,11 @@ package main
 
 import (
 	"bytes"
-	_ "crypto/aes"
-	_ "crypto/cipher"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	_ "log"
 	"net/http"
 	"os"
-	_ "strconv"
-	_ "strings"
 
 	"github.com/gin-gonic/gin"
 )
