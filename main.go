@@ -84,7 +84,7 @@ func InitOrders(log bool) {
 func main() {
 	go func() {
 		// Uncomment to run orderbook S3 backup script
-		gocron.Every(30).Minutes().Do(UploadToS3, getOrderbookBytes(), "orderbook")
+		// gocron.Every(30).Minutes().Do(UploadToS3, getOrderbookBytes(), "orderbook")
 		gocron.Every(5).Seconds().Do(SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
 		<-gocron.Start()
