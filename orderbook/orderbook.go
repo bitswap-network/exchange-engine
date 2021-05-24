@@ -78,7 +78,7 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 	}
 
 	quantityLeft = quantity
-	ob.Sanitize()
+	ob.Sanitize(append(done,partial))
 	return
 }
 
@@ -161,10 +161,9 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 			totalQuantity = totalQuantity.Add(partialQuantityProcessed)
 			totalPrice = totalPrice.Add(partial.Price().Mul(partialQuantityProcessed))
 		}
-
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
-	ob.Sanitize()
+	ob.Sanitize(append(done,partial))
 	return
 }
 
@@ -197,15 +196,15 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 	}
 	return
 }
-
-func (ob *OrderBook) Sanitize() {
-	for oid, order := range ob.orders {
-		log.Printf("Validating: %s\n", oid)
-		if !ob.validateBalance(order.Value.(*Order)) {
-			log.Printf("Validation failed for: %s\n", oid)
+//change to only validate users associated with orders
+func (ob *OrderBook) Sanitize(orders []*Order) {
+	for _,order := range orders {
+		log.Printf("Validating: %s\n", order.ID())
+		if !ob.validateBalance(order) {
+			log.Printf("Validation failed for: %s\n", order.ID())
 			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), oid, "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
-			ob.CancelOrder(oid)
+			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
+			ob.CancelOrder(order.ID())
 		}
 	}
 }

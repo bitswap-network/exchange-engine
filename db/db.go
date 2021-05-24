@@ -61,6 +61,23 @@ func MongoConnect() (*mongo.Client, context.CancelFunc) {
 	return client, cancel
 }
 
+func GetUserOrders(ctx context.Context, username string) (orders *[]model.OrderSchema, err error) {
+	log.Printf("fetching user orders: %v\n", username)
+	var ordersDoc *[]model.OrderSchema
+
+	db := global.Api.Mongo.Database(database)
+	orderC := db.Collection("orders")
+	cursor, err := orderC.Find(ctx, bson.M{"username": username})
+	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(ctx, &ordersDoc); err != nil {
+		log.Println(err)
+	}
+	log.Println("done fetching orders")
+	return ordersDoc, nil
+}
+
 func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *model.UserBalance, err error) {
 	log.Printf("fetching user balance from: %v\n", orderID)
 	var userDoc *model.UserSchema

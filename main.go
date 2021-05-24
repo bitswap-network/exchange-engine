@@ -54,14 +54,14 @@ func RouterSetup() *gin.Engine {
 	router.GET("/", rootHandler)
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
 	router.GET("/ethusd", GetETHUSDHandler)
-	router.GET("/sanitize", SanitizeHandler)
+	
 	//Debug mode bypasses server auth
 	exchangeRouter := router.Group("/exchange", internalServerAuth())
 
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
 	exchangeRouter.POST("/cancel", CancelOrderHandler)
-	
+	exchangeRouter.POST("/sanitize", SanitizeHandler)
 
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
