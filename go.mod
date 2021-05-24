@@ -1,6 +1,7 @@
 module v1.1-fulfiller
 
 go 1.16
+
 // +heroku goVersion 1.16
 require (
 	github.com/Valiben/gin_unit_test v0.0.0-20181205064931-674aee46d090
@@ -8,7 +9,7 @@ require (
 	github.com/danielkov/gin-helmet v0.0.0-20171108135313-1387e224435e
 	github.com/emirpasic/gods v1.12.0
 	github.com/gin-contrib/cors v1.3.1
-	github.com/gin-gonic/gin v1.7.1
+	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/heroku/x v0.0.28
