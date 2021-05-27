@@ -1,4 +1,4 @@
-package main
+package s3
 
 import (
 	"bytes"
@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
+const name = "orderbook"
+
 func AwsGetSession() (sess *session.Session, err error) {
 	sess, err = session.NewSession(&aws.Config{
 		Region: aws.String("us-east-1")},
@@ -25,16 +27,7 @@ func AwsGetSession() (sess *session.Session, err error) {
 	return sess, nil
 }
 
-func getOrderbookBytes() (data []byte) {
-	data, err := exchange.MarshalJSON()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	return data
-}
-
-func UploadToS3(data []byte, name string) {
+func UploadToS3(data []byte) {
 	file := bytes.NewReader(data)
 	sess, _ := AwsGetSession()
 	uploader := s3manager.NewUploader(sess)
@@ -59,7 +52,7 @@ func UploadToS3(data []byte, name string) {
 	log.Println("done uploading", time.Now())
 }
 
-func GetOrderbookS3() (data []byte) {
+func GetOrderbook() (data []byte) {
 	sess, _ := AwsGetSession()
 	downloader := s3manager.NewDownloader(sess)
 	log.Println("fetching... ")

@@ -11,6 +11,7 @@ import (
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
 	model "v1.1-fulfiller/models"
+	s3 "v1.1-fulfiller/s3"
 )
 
 // OrderBook implements standard matching algorithm
@@ -78,7 +79,11 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 	}
 
 	quantityLeft = quantity
-	ob.Sanitize(append(done,partial))
+	if partial != nil {
+ob.Sanitize(append(done,partial))
+	}else{
+		ob.Sanitize(done)
+	}
 	return
 }
 
@@ -163,7 +168,12 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 		}
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
-	ob.Sanitize(append(done,partial))
+	if partial != nil {
+ob.Sanitize(append(done,partial))
+	}else{
+		ob.Sanitize(done)
+	}
+	
 	return
 }
 
@@ -207,6 +217,7 @@ func (ob *OrderBook) Sanitize(orders []*Order) {
 			ob.CancelOrder(order.ID())
 		}
 	}
+	go s3.UploadToS3(ob.GetOrderbookBytes())
 }
 
 // internal user balance
@@ -330,6 +341,15 @@ func (ob *OrderBook) Depth() (asks, bids []*PriceLevel) {
 		level = ob.bids.LessThan(level.Price())
 	}
 	return
+}
+
+func (ob *OrderBook) GetOrderbookBytes() (data []byte) {
+	data, err := ob.MarshalJSON()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	return data
 }
 
 func (ob *OrderBook) DepthMarshalJSON() (*model.DepthSchema, error) {
