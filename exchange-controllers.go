@@ -16,7 +16,27 @@ import (
 )
 
 func SanitizeHandler(c *gin.Context) {
-	exchange.Sanitize()
+	var reqBody model.UsernameRequest
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		log.Print(err)
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		return
+	}
+	if reqBody.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid Username"})
+		return
+	}
+	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		return
+	}
+	var orderList []*ob.Order
+	for _, order := range *orders {
+		orderFromState := exchange.Order(order.OrderID)
+		orderList = append(orderList, orderFromState)
+	}
+	exchange.Sanitize(orderList)
 	c.String(http.StatusOK, "OK")
 }
 
