@@ -22,17 +22,17 @@ func SanitizeHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
 		return
 	}
-	if (reqBody.Username==""){
+	if reqBody.Username == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid Username"})
 		return
 	}
-	orders, err := db.GetUserOrders(c.Request.Context(),reqBody.Username)
-	if err!=nil{
+	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
 		return
 	}
 	var orderList []*ob.Order
-	for _,order := range *orders {
+	for _, order := range *orders {
 		orderFromState := exchange.Order(order.OrderID)
 		orderList = append(orderList, orderFromState)
 	}

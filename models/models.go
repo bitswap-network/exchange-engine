@@ -7,7 +7,7 @@ import (
 )
 
 type UsernameRequest struct {
-	Username               string             `json:"username" bson:"username" binding:"required"`
+	Username string `json:"username" bson:"username" binding:"required"`
 }
 
 type DepthSchema struct {

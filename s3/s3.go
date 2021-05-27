@@ -56,7 +56,7 @@ func GetOrderbook() (data []byte) {
 	sess, _ := AwsGetSession()
 	downloader := s3manager.NewDownloader(sess)
 	log.Println("fetching... ")
-	
+
 	buf := aws.NewWriteAtBuffer([]byte{})
 	_, err := downloader.Download(buf,
 		&s3.GetObjectInput{

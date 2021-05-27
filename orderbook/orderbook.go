@@ -80,8 +80,8 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 
 	quantityLeft = quantity
 	if partial != nil {
-ob.Sanitize(append(done,partial))
-	}else{
+		ob.Sanitize(append(done, partial))
+	} else {
 		ob.Sanitize(done)
 	}
 	return
@@ -169,11 +169,11 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
 	if partial != nil {
-ob.Sanitize(append(done,partial))
-	}else{
+		ob.Sanitize(append(done, partial))
+	} else {
 		ob.Sanitize(done)
 	}
-	
+
 	return
 }
 
@@ -206,9 +206,10 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 	}
 	return
 }
+
 //change to only validate users associated with orders
 func (ob *OrderBook) Sanitize(orders []*Order) {
-	for _,order := range orders {
+	for _, order := range orders {
 		log.Printf("Validating: %s\n", order.ID())
 		if !ob.validateBalance(order) {
 			log.Printf("Validation failed for: %s\n", order.ID())
