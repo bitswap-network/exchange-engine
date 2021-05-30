@@ -63,7 +63,6 @@ func SetETHUSD() {
 		log.Println(err)
 	}
 	global.ETHUSD = price
-	fmt.Println(global.ETHUSD)
 }
 
 func LogDepth() {
