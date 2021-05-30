@@ -16,7 +16,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 	quantity, err := decimal.NewFromString(quantityParam)
 	if err != nil {
 		log.Println(err)
-		quantity, _ = decimal.NewFromString("10")
+		quantity, _ = decimal.NewFromString("1")
 	}
 	var orderSide ob.Side
 	if sideParam == "buy" {
