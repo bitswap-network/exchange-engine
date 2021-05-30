@@ -99,7 +99,7 @@ func main() {
 	}
 	// Uncomment for testing/debugging
 	fmt.Printf("Starting server at port %s\n", port)
-	fmt.Println(os.Getenv("GIN_MODE"))
+	fmt.Println(ENV_MODE)
 	if err := global.Api.Router.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
