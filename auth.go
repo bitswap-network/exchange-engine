@@ -5,6 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -43,9 +45,13 @@ func internalServerAuth() gin.HandlerFunc {
 			if !ok {
 				c.String(http.StatusBadRequest, "Where da signature at doe?")
 			}
-			messageBuffer := new(bytes.Buffer)
-			messageBuffer.ReadFrom(c.Request.Body)
-			if validateHMAC([]byte(signature[0]), messageBuffer.Bytes()) {
+			messageBuffer,err := ioutil.ReadAll(c.Request.Body)
+			log.Println(string(messageBuffer))
+			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(messageBuffer))
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{"error":err.Error()} )
+			}
+			if validateHMAC([]byte(signature[0]), messageBuffer) {
 				c.Next()
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
