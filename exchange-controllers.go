@@ -63,7 +63,8 @@ func MarketOrderHandler(c *gin.Context) {
 
 	order.OrderType = "market"
 	order.Created = time.Now()
-	order.Complete = false
+	order.Complete = true
+	order.CompleteTime = time.Now()
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	// add error handling
