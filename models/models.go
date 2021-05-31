@@ -13,8 +13,6 @@ type UsernameRequest struct {
 type DepthSchema struct {
 	ID         primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
 	TimeStamp  time.Time          `json:"timestamp" bson:"timestamp" binding:"-"`
-	MarketBuy  float64            `json:"marketBuy" bson:"marketBuy" binding:"-"`
-	MarketSell float64            `json:"marketSell" bson:"marketSell" binding:"-"`
 	Asks       []*PriceLevel      `json:"asks" bson:"asks" binding:"-"`
 	Bids       []*PriceLevel      `json:"bids" bson:"bids" binding:"-"`
 }
