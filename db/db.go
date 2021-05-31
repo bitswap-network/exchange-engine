@@ -86,7 +86,7 @@ func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *mode
 	db := global.Api.Mongo.Database(database)
 	orders := db.Collection("orders")
 	users := db.Collection(userCollection())
-	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&userDoc)
+	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
