@@ -41,7 +41,7 @@ func internalServerAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		switch ENV_MODE {
 		case "release":
-			signature, ok := c.Request.Header["x-server-signature"]
+			signature, ok := c.Request.Header["Server-Signature"]
 			if !ok {
 				c.String(http.StatusBadRequest, "Where da signature at doe?")
 			}
