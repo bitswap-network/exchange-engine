@@ -82,7 +82,7 @@ func main() {
 		gocron.Every(10).Seconds().Do(SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
 		gocron.Every(10).Seconds().Do(LogOrderbook)
-		gocron.Every(10).Seconds().Do(s3.UploadToS3,exchange.GetOrderbookBytes())
+		gocron.Every(1).Minute().Do(s3.UploadToS3,exchange.GetOrderbookBytes())
 		<-gocron.Start()
 	}()
 	//Adding test orders to book
