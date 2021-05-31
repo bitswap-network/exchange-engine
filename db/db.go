@@ -121,6 +121,20 @@ func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
 	return nil
 }
 
+func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64, waitGroup *sync.WaitGroup) error {
+	log.Printf("update order price: %v\n", orderID)
+	defer global.Wg.Done()
+
+	db := global.Api.Mongo.Database(database)
+	orders := db.Collection("orders")
+	update := bson.M{"$set": bson.M{"orderPrice": orderPrice}}
+	_, err := orders.UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string, waitGroup *sync.WaitGroup) error {
 	log.Printf("cancel complete: %v\n", orderID)
 	defer global.Wg.Done()

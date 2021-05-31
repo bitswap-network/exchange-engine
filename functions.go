@@ -10,33 +10,23 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
-func ProcessFull(orderlist []*ob.Order) (err error) {
+func ProcessFull(orderlist []*ob.Order) {
 	for _, order := range orderlist {
 		global.Wg.Add(1)
 		go db.FulfillOrder(context.TODO(), order.ID(), 0, &global.Wg)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	return err
-		// }
 	}
-	return nil
+	return
 }
 
-func ProcessPartial(order *ob.Order, partialQuantityProcessed decimal.Decimal) (err error) {
-	pQ, _ := partialQuantityProcessed.Float64()
+func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) (err error) {
 	global.Wg.Add(1)
-	go db.PartialFulfillOrder(context.TODO(), order.ID(), pQ, 0, &global.Wg)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return err
-	// }
-	return nil
+	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, &global.Wg)
+	return
 }
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -48,8 +46,6 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	data, _ := json.MarshalIndent(order, "", "  ")
-	fmt.Println(string(data))
 
 	var orderSide ob.Side
 	if order.OrderSide == "buy" {
@@ -66,10 +62,8 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Complete = true
 	order.CompleteTime = time.Now()
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-
-	// add error handling
-
 	db.CreateOrder(c.Request.Context(), &order)
+	// add error handling
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
@@ -77,32 +71,32 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
-
+	totalPriceFloat, _ := totalPrice.Float64()
+	quantityLeftFloat, _ := quantityLeft.Float64()
+	partialQuantityProcessedFloat,_ := partialQuantityProcessed.Float64()
+	go db.UpdateOrderPrice(c.Copy().Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity, &global.Wg)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	log.Println(exchange)
-	log.Println(ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error)
 	// If any orders have been fulfilled, process them
 	if len(ordersDone) > 0 {
 		ProcessFull(ordersDone)
 	}
 	// If any orders have been partially fulfilled, process them
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessed)
+		ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
-	tP, _ := totalPrice.Float64()
-	qL, _ := quantityLeft.Float64()
+	
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
 		global.Wg.Add(1)
-		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-qL, tP, &global.Wg)
+		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, &global.Wg)
 
 	} else {
 		//add checks & validators
 		global.Wg.Add(1)
-		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, tP, &global.Wg)
+		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, totalPriceFloat, &global.Wg)
 	}
 	global.Wg.Wait()
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
@@ -111,12 +105,9 @@ func MarketOrderHandler(c *gin.Context) {
 func LimitOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindBodyWith(&order, binding.JSON); err != nil {
-		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	data, _ := json.MarshalIndent(order, "", "  ")
-	fmt.Println(string(data))
 
 	var orderSide ob.Side
 	if order.OrderSide == "buy" {
@@ -138,24 +129,21 @@ func LimitOrderHandler(c *gin.Context) {
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ob.ErrInvalidQuantity.Error()})
 		return
 	}
 
 	ordersDone, partialDone, partialQuantityProcessed, error := exchange.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
-
+partialQuantityProcessedFloat,_ := partialQuantityProcessed.Float64()
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	log.Println(exchange)
-	log.Println(ordersDone, partialDone, partialQuantityProcessed, error)
-
 	if ordersDone != nil {
 		ProcessFull(ordersDone)
 	}
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessed)
+		ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
@@ -164,10 +152,9 @@ func CancelOrderHandler(c *gin.Context) {
 	var orderID struct {
 		ID string `json:"orderID" binding:"required"`
 	}
-
-	if err := c.ShouldBindJSON(&orderID); err != nil {
+	if err := c.ShouldBindBodyWith(&orderID,binding.JSON); err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cancelledOrderId := exchange.CancelOrder(orderID.ID)
