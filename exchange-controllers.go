@@ -44,7 +44,7 @@ func MarketOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 	data, _ := json.MarshalIndent(order, "", "  ")
@@ -71,13 +71,13 @@ func MarketOrderHandler(c *gin.Context) {
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity})
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity.Error()})
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
 
 	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": error.Error()})
 		return
 	}
 	log.Println(exchange)
@@ -110,7 +110,7 @@ func LimitOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 	data, _ := json.MarshalIndent(order, "", "  ")
@@ -136,14 +136,14 @@ func LimitOrderHandler(c *gin.Context) {
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity})
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity.Error()})
 		return
 	}
 
 	ordersDone, partialDone, partialQuantityProcessed, error := exchange.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 
 	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": error})
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": error.Error()})
 		return
 	}
 	log.Println(exchange)
@@ -165,7 +165,7 @@ func CancelOrderHandler(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&orderID); err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
 	}
 	cancelledOrderId := exchange.CancelOrder(orderID.ID)
