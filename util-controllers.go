@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -38,7 +39,26 @@ func GetMarketPriceHandler(c *gin.Context) {
 	priceFloat, _ := price.Float64()
 	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantityFloat, "price": priceFloat, "side": sideParam})
 }
+
+func GetCurrentDepthHandler(c *gin.Context) {
+	depthMarshal, err := exchange.DepthMarshalJSON()
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	jsonMarshall, err := json.Marshal(depthMarshal)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Data(http.StatusOK, gin.MIMEJSON, jsonMarshall)
+	return
+}
+
 func GetETHUSDHandler(c *gin.Context) {
 	log.Println(global.ETHUSD)
 	c.SecureJSON(http.StatusOK, gin.H{"result": global.ETHUSD})
+	return
 }
