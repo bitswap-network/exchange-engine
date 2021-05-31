@@ -31,7 +31,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 	price, err := exchange.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
 		return
 	}
 	quantityFloat, _ := quantity.Float64()
