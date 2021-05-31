@@ -24,14 +24,14 @@ func GetMarketPriceHandler(c *gin.Context) {
 	} else if sideParam == "sell" {
 		orderSide = ob.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
 
 	price, err := exchange.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	quantityFloat, _ := quantity.Float64()

@@ -19,16 +19,16 @@ func SanitizeHandler(c *gin.Context) {
 	var reqBody model.UsernameRequest
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 	if reqBody.Username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid Username"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
 		return
 	}
 	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 	var orderList []*ob.Order
@@ -44,7 +44,7 @@ func MarketOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	data, _ := json.MarshalIndent(order, "", "  ")
@@ -56,7 +56,7 @@ func MarketOrderHandler(c *gin.Context) {
 	} else if order.OrderSide == "sell" {
 		orderSide = ob.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
 
@@ -71,13 +71,13 @@ func MarketOrderHandler(c *gin.Context) {
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": ob.ErrInvalidQuantity.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ob.ErrInvalidQuantity.Error()})
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
 
 	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": error.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	log.Println(exchange)
@@ -110,7 +110,7 @@ func LimitOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	data, _ := json.MarshalIndent(order, "", "  ")
@@ -122,7 +122,7 @@ func LimitOrderHandler(c *gin.Context) {
 	} else if order.OrderSide == "sell" {
 		orderSide = ob.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
 
@@ -143,7 +143,7 @@ func LimitOrderHandler(c *gin.Context) {
 	ordersDone, partialDone, partialQuantityProcessed, error := exchange.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 
 	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": error.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	log.Println(exchange)
