@@ -263,7 +263,7 @@ func (ob *OrderBook) CancelOrder(orderID string) *Order {
 	if e.Value.(*Order).Side() == Buy {
 		return ob.bids.Remove(e)
 	}
-
+	go s3.UploadToS3(ob.GetOrderbookBytes())
 	return ob.asks.Remove(e)
 }
 
