@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
 	global "v1.1-fulfiller/global"
@@ -17,9 +18,9 @@ import (
 
 func SanitizeHandler(c *gin.Context) {
 	var reqBody model.UsernameRequest
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
+	if err := c.ShouldBindBodyWith(&reqBody, binding.JSON); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if reqBody.Username == "" {
@@ -28,7 +29,7 @@ func SanitizeHandler(c *gin.Context) {
 	}
 	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	var orderList []*ob.Order
@@ -42,7 +43,7 @@ func SanitizeHandler(c *gin.Context) {
 
 func MarketOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
-	if err := c.ShouldBindJSON(&order); err != nil {
+	if err := c.ShouldBindBodyWith(&order, binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -108,7 +109,7 @@ func MarketOrderHandler(c *gin.Context) {
 
 func LimitOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
-	if err := c.ShouldBindJSON(&order); err != nil {
+	if err := c.ShouldBindBodyWith(&order,binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
