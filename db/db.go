@@ -88,10 +88,12 @@ func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *mode
 	users := db.Collection(userCollection())
 	err = orders.FindOne(ctx, bson.M{"orderID": orderID}).Decode(&userDoc)
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 	err = users.FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 	log.Println("done fetching balance")

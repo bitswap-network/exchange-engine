@@ -227,7 +227,7 @@ func (ob *OrderBook) validateBalance(order *Order) bool {
 	//IMPORTANT: must change - only for debug
 	if err != nil {
 		log.Println(err)
-		return true
+		return false
 	}
 
 	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
