@@ -354,16 +354,21 @@ func (ob *OrderBook) GetOrderbookBytes() (data []byte) {
 }
 
 func (ob *OrderBook) DepthMarshalJSON() (*model.DepthSchema, error) {
+	var buyMarketPriceFloat, sellMarketPriceFloat float64
 	buyMarketPrice, err := ob.CalculateMarketPrice(Buy, decimal.NewFromInt(1))
 	if err != nil {
-		return nil, err
+		buyMarketPriceFloat =0
+	} else{
+buyMarketPriceFloat, _ = buyMarketPrice.Float64()
 	}
 	sellMarketPrice, err := ob.CalculateMarketPrice(Sell, decimal.NewFromInt(1))
 	if err != nil {
-		return nil, err
+		sellMarketPriceFloat=0
+	}else{
+sellMarketPriceFloat, _ = sellMarketPrice.Float64()
 	}
-	buyMarketPriceFloat, _ := buyMarketPrice.Float64()
-	sellMarketPriceFloat, _ := sellMarketPrice.Float64()
+	
+	
 	level := ob.asks.MaxPriceQueue()
 	var asks, bids []*model.PriceLevel
 	for level != nil {

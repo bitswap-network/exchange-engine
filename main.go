@@ -81,6 +81,7 @@ func main() {
 	go func() {
 		gocron.Every(10).Seconds().Do(SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
+		gocron.Every(10).Seconds().Do(LogOrderbook)
 		<-gocron.Start()
 	}()
 	//Adding test orders to book

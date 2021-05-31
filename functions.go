@@ -63,7 +63,11 @@ func LogDepth() {
 	}
 
 	db.CreateDepthLog(context.TODO(), depthMarshal)
-
+	return
+}
+func LogOrderbook() {
+	log.Println(exchange.String())
+	return
 }
 
 func getJson(url string, target interface{}) error {
