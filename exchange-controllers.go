@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -109,6 +110,9 @@ func MarketOrderHandler(c *gin.Context) {
 
 func LimitOrderHandler(c *gin.Context) {
 	var order model.OrderSchema
+	messageBuffer := new(bytes.Buffer)
+			messageBuffer.ReadFrom(c.Request.Body)
+			fmt.Println(messageBuffer.String())
 	if err := c.ShouldBindBodyWith(&order,binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
