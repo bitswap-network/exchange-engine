@@ -32,10 +32,10 @@ func SanitizeHandler(c *gin.Context) {
 	}
 	var orderList []*ob.Order
 	for _, order := range *orders {
-		orderFromState := exchange.Order(order.OrderID)
+		orderFromState := ob.GetOrder(order.OrderID)
 		orderList = append(orderList, orderFromState)
 	}
-	exchange.Sanitize(orderList)
+	ob.Sanitize(orderList)
 	c.String(http.StatusOK, "OK")
 }
 
@@ -70,7 +70,7 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": ob.ErrInvalidQuantity.Error()})
 		return
 	}
-	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := exchange.ProcessMarketOrder(orderSide, orderQuantity)
+	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := ob.ProcessMarketOrder(orderSide, orderQuantity)
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
@@ -133,7 +133,7 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 
-	ordersDone, partialDone, partialQuantityProcessed, error := exchange.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
+	ordersDone, partialDone, partialQuantityProcessed, error := ob.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
@@ -157,7 +157,7 @@ func CancelOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrderId := exchange.CancelOrder(orderID.ID)
+	cancelledOrderId := ob.CancelOrder(orderID.ID)
 	if cancelledOrderId == nil {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return

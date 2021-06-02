@@ -29,7 +29,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 		return
 	}
 
-	price, err := exchange.CalculateMarketPrice(orderSide, quantity)
+	price, err := ob.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -41,7 +41,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 }
 
 func GetCurrentDepthHandler(c *gin.Context) {
-	depthMarshal, err := exchange.DepthMarshalJSON()
+	depthMarshal, err := ob.DepthMarshalJSON()
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -58,7 +58,8 @@ func GetCurrentDepthHandler(c *gin.Context) {
 }
 
 func GetETHUSDHandler(c *gin.Context) {
-	log.Println(global.ETHUSD)
-	c.SecureJSON(http.StatusOK, gin.H{"result": global.ETHUSD})
+	ETHUSD := <-global.Exchange.ETHUSD
+	// log.Println(global.ETHUSD)
+	c.SecureJSON(http.StatusOK, gin.H{"result": ETHUSD})
 	return
 }

@@ -173,6 +173,7 @@ func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64, w
 }
 
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string, waitGroup *sync.WaitGroup) error {
+
 	log.Printf("cancel complete: %v\n", orderID)
 	defer global.WaitGroup.Done()
 
@@ -185,6 +186,8 @@ func CancelCompleteOrder(ctx context.Context, orderID string, errorString string
 }
 
 func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *sync.WaitGroup) error {
+	ETHUSD := <-global.Exchange.ETHUSD
+
 	log.Printf("fulfill: %v\n", orderID)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
@@ -204,23 +207,23 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *
 	//update ether USD price var
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutChange = orderDoc.OrderQuantity - orderDoc.OrderQuantity*global.FEE
+			bitcloutChange = orderDoc.OrderQuantity - orderDoc.OrderQuantity*global.Exchange.FEE
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (orderDoc.OrderPrice * orderDoc.OrderQuantity / global.ETHUSD)
+			etherChange = (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
 			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
 		} else {
 			bitcloutChange = orderDoc.OrderQuantity
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
-			etherChange = ((orderDoc.OrderPrice * orderDoc.OrderQuantity) - (orderDoc.OrderPrice * orderDoc.OrderQuantity * global.FEE)) / global.ETHUSD
+			etherChange = ((orderDoc.OrderPrice * orderDoc.OrderQuantity) - (orderDoc.OrderPrice * orderDoc.OrderQuantity * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + orderDoc.OrderQuantity
-			etherBalanceUpdated = userDoc.Balance.Ether - (cost / global.ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
 		} else {
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - orderDoc.OrderQuantity
-			etherBalanceUpdated = userDoc.Balance.Ether + (cost / global.ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
 		}
 	}
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
@@ -240,6 +243,7 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *
 }
 
 func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64, waitGroup *sync.WaitGroup) (err error) {
+	ETHUSD := <-global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
@@ -258,26 +262,26 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 	var bitcloutBalanceUpdated, etherBalanceUpdated, bitcloutChange, etherChange float64
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.FEE)
+			bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (orderDoc.OrderPrice * partialQuantityProcessed) / global.ETHUSD
+			etherChange = (orderDoc.OrderPrice * partialQuantityProcessed) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
 		} else {
 			bitcloutChange = partialQuantityProcessed
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
-			etherChange = ((orderDoc.OrderPrice * partialQuantityProcessed) - (orderDoc.OrderPrice * partialQuantityProcessed * global.FEE)) / global.ETHUSD
+			etherChange = ((orderDoc.OrderPrice * partialQuantityProcessed) - (orderDoc.OrderPrice * partialQuantityProcessed * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutChange = partialQuantityProcessed * global.FEE
+			bitcloutChange = partialQuantityProcessed * global.Exchange.FEE
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (cost / global.ETHUSD)
+			etherChange = (cost / ETHUSD)
 			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
 		} else {
 			bitcloutChange = partialQuantityProcessed
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
-			etherChange = (cost - cost*global.FEE) / global.ETHUSD
+			etherChange = (cost - cost*global.Exchange.FEE) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	}

@@ -9,6 +9,12 @@ import (
 
 var IsTest bool
 
+type Util struct {
+	ETHERSCAN_KEY string
+}
+
+var UtilConfig = &Util{}
+
 type Server struct {
 	RunMode      string
 	Addr         string
@@ -36,16 +42,16 @@ type S3 struct {
 var S3Config = &S3{}
 
 func Setup() {
+	log.Println("config setup")
 	envMap := getEnvMap(os.Environ(), func(item string) (key, val string) {
 		splits := strings.Split(item, "=")
 		key = splits[0]
 		val = splits[1]
 		return
 	})
-	log.Println(envMap)
 
 	ServerConfig.RunMode = envMap["ENV_MODE"]
-	ServerConfig.Addr = ":"+envMap["PORT"]
+	ServerConfig.Addr = ":" + envMap["PORT"]
 	if ServerConfig.Addr == ":" {
 		ServerConfig.Addr = ":5050"
 	}
@@ -68,6 +74,8 @@ func Setup() {
 	S3Config.Region = "us-east-1"
 	S3Config.LogName = "orderbook"
 	S3Config.Bucket = envMap["BUCKET"]
+	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
+	log.Println("config setup complete")
 }
 
 func getEnvMap(data []string, getkeyval func(item string) (key, val string)) map[string]string {

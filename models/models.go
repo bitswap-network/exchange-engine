@@ -6,6 +6,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type EthPriceAPI struct {
+	Status  string            `json:"status"`
+	Message string            `json:"message"`
+	Result  EthPriceAPIResult `json:"result"`
+}
+type EthPriceAPIResult struct {
+	Ethbtc           string `json:"ethbtc"`
+	Ethbtc_timestamp string `json:"ethbtc_timestamp"`
+	Ethusd           string `json:"ethusd"`
+	Ethusd_timestamp string `json:"ethusd_timestamp"`
+}
+
 type UsernameRequest struct {
 	Username string `json:"username" bson:"username" binding:"required"`
 }

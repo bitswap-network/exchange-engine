@@ -41,7 +41,7 @@ func TestETHUSDRoute(t *testing.T) {
 		t.Errorf("ETHUSD Test Error: %v\n", err)
 		return
 	}
-	if respBody.Result != global.ETHUSD {
+	if respBody.Result != <-global.Exchange.ETHUSD {
 		t.Errorf("Unexpected Response: %v\n", respBody)
 		return
 	}
@@ -55,12 +55,12 @@ func TestMarketPriceRoute(t *testing.T) {
 		Side     string  `json:"side"`
 	}{}
 	log.Println(decimal.NewFromInt(testQuantity))
-	priceBuy, opErr := exchange.CalculateMarketPrice(ob.Buy, decimal.NewFromInt(testQuantity))
+	priceBuy, opErr := ob.CalculateMarketPrice(ob.Buy, decimal.NewFromInt(testQuantity))
 	if opErr != nil {
 		t.Errorf("Market Price Test Error: %v\n", opErr)
 		return
 	}
-	priceSell, opErr := exchange.CalculateMarketPrice(ob.Sell, decimal.NewFromInt(testQuantity))
+	priceSell, opErr := ob.CalculateMarketPrice(ob.Sell, decimal.NewFromInt(testQuantity))
 	if opErr != nil {
 		t.Errorf("Market Price Test Error: %v\n", opErr)
 		return

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 
 	db "v1.1-fulfiller/db"
@@ -33,30 +31,8 @@ func OrderIDGen(orderType string, orderSide string, username string, quantity fl
 	return fmt.Sprintf("%s-%s-%s-%v-%v", orderType, orderSide, username, quantity, created.UnixNano()/int64(time.Millisecond))
 }
 
-type EthPriceAPI struct {
-	Status  string            `json:"status"`
-	Message string            `json:"message"`
-	Result  EthPriceAPIResult `json:"result"`
-}
-type EthPriceAPIResult struct {
-	Ethbtc           string `json:"ethbtc"`
-	Ethbtc_timestamp string `json:"ethbtc_timestamp"`
-	Ethusd           string `json:"ethusd"`
-	Ethusd_timestamp string `json:"ethusd_timestamp"`
-}
-
-func SetETHUSD() {
-	apiResp := new(EthPriceAPI)
-	getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", os.Getenv("ETHERSCAN_KEY")), apiResp)
-	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
-	if err != nil {
-		log.Println(err)
-	}
-	global.ETHUSD = price
-}
-
 func LogDepth() {
-	depthMarshal, err := exchange.DepthMarshalJSON()
+	depthMarshal, err := ob.DepthMarshalJSON()
 	if err != nil {
 		log.Println(err)
 		return
@@ -66,7 +42,7 @@ func LogDepth() {
 	return
 }
 func LogOrderbook() {
-	log.Println(exchange.String())
+	log.Println(ob.String())
 	return
 }
 

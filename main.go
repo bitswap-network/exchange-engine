@@ -19,6 +19,7 @@ import (
 	"github.com/joho/godotenv"
 	config "v1.1-fulfiller/config"
 	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 	"v1.1-fulfiller/s3"
 )
@@ -36,19 +37,11 @@ func init() {
 		log.Println(err.Error())
 	}
 	config.Setup()
+	global.Setup()
 	s3.Setup()
 	db.Setup()
-	SetETHUSD()
-	// Uncomment to use S3 saved orderbook state on launch
-	recoverOrderbook := s3.GetOrderbook()
-	if recoverOrderbook != nil {
-		log.Println("unmarshalling fetched orderbook")
-		err = exchange.UnmarshalJSON(recoverOrderbook)
-		if err != nil {
-			log.Println("Error loading fetched orderbook")
-		}
-		log.Println(exchange.String())
-	}
+	ob.Setup(false)
+
 }
 
 func RouterSetup() *gin.Engine {
@@ -75,10 +68,10 @@ func RouterSetup() *gin.Engine {
 func main() {
 	gin.SetMode(config.ServerConfig.RunMode)
 	go func() {
-		gocron.Every(10).Seconds().Do(SetETHUSD)
+		gocron.Every(10).Seconds().Do(global.SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
 		gocron.Every(10).Seconds().Do(LogOrderbook)
-		gocron.Every(1).Minute().Do(s3.UploadToS3, exchange.GetOrderbookBytes())
+		gocron.Every(1).Minute().Do(s3.UploadToS3, ob.GetOrderbookBytes())
 		<-gocron.Start()
 	}()
 
@@ -109,7 +102,10 @@ func main() {
 	log.Println("Shutting down server...")
 
 	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelterm()
+	defer func() {
+		cancelterm()
+		close(global.Exchange.ETHUSD)
+	}()
 
 	if err := srv.Shutdown(ctxterm); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
