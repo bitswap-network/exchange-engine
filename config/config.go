@@ -37,7 +37,7 @@ var S3Config = &S3{}
 
 func Setup() {
 	envMap := getEnvMap(os.Environ(), func(item string) (key, val string) {
-		splits := strings.Split(item, "=")
+		splits := strings.Split(item, ":")
 		key = splits[0]
 		val = splits[1]
 		return
@@ -45,8 +45,8 @@ func Setup() {
 	log.Println(envMap)
 
 	ServerConfig.RunMode = envMap["ENV_MODE"]
-	ServerConfig.Addr = envMap["PORT"]
-	if ServerConfig.Addr == "" {
+	ServerConfig.Addr = ":"+envMap["PORT"]
+	if ServerConfig.Addr == ":" {
 		ServerConfig.Addr = ":5050"
 	}
 	if ServerConfig.RunMode == "release" {
