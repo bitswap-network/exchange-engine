@@ -37,7 +37,7 @@ var S3Config = &S3{}
 
 func Setup() {
 	envMap := getEnvMap(os.Environ(), func(item string) (key, val string) {
-		splits := strings.Split(item, ":")
+		splits := strings.Split(item, "=")
 		key = splits[0]
 		val = splits[1]
 		return
