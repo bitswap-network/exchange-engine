@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -41,6 +42,7 @@ func Setup() {
 		val = splits[1]
 		return
 	})
+	log.Println(envMap)
 
 	ServerConfig.RunMode = envMap["ENV_MODE"]
 	ServerConfig.Addr = envMap["PORT"]
