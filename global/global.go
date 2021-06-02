@@ -49,6 +49,7 @@ func getJson(url string, target interface{}) error {
 	if err != nil {
 		return err
 	}
+	json.NewDecoder(r.Body).Decode(target)
 	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(target)
+	return nil
 }

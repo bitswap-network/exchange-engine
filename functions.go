@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	db "v1.1-fulfiller/db"
@@ -18,13 +16,11 @@ func ProcessFull(orderlist []*ob.Order) {
 		global.WaitGroup.Add(1)
 		go db.FulfillOrder(context.TODO(), order.ID(), 0, &global.WaitGroup)
 	}
-	return
 }
 
-func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) (err error) {
+func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) {
 	global.WaitGroup.Add(1)
 	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, &global.WaitGroup)
-	return
 }
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {
@@ -35,23 +31,10 @@ func LogDepth() {
 	depthMarshal, err := ob.DepthMarshalJSON()
 	if err != nil {
 		log.Println(err)
-		return
 	}
-
 	db.CreateDepthLog(context.TODO(), depthMarshal)
-	return
 }
+
 func LogOrderbook() {
 	log.Println(ob.String())
-	return
-}
-
-func getJson(url string, target interface{}) error {
-	r, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
 }

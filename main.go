@@ -24,9 +24,6 @@ import (
 	"v1.1-fulfiller/s3"
 )
 
-var exchange = ob.NewOrderBook()
-var ENV_MAP map[string]string
-
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
 }
