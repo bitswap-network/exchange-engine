@@ -25,6 +25,7 @@ type OrderBook struct {
 var OB = &OrderBook{}
 
 func Setup(blank bool) {
+	log.Println("orderbook setup")
 	if !blank {
 		recoverOrderbook := s3.GetOrderbook()
 		if recoverOrderbook != nil {
@@ -38,7 +39,7 @@ func Setup(blank bool) {
 	} else {
 		OB = NewOrderBook()
 	}
-
+	log.Println("orderbook setup complete")
 }
 
 // NewOrderBook creates Orderbook object
