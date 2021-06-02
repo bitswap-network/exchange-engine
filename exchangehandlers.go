@@ -74,7 +74,7 @@ func MarketOrderHandler(c *gin.Context) {
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
-	go db.UpdateOrderPrice(c.Copy().Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity, &global.Wg)
+	go db.UpdateOrderPrice(c.Copy().Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity, &global.WaitGroup)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -90,15 +90,15 @@ func MarketOrderHandler(c *gin.Context) {
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		global.Wg.Add(1)
-		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, &global.Wg)
+		global.WaitGroup.Add(1)
+		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, &global.WaitGroup)
 
 	} else {
 		//add checks & validators
-		global.Wg.Add(1)
-		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, totalPriceFloat, &global.Wg)
+		global.WaitGroup.Add(1)
+		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, totalPriceFloat, &global.WaitGroup)
 	}
-	global.Wg.Wait()
+	global.WaitGroup.Wait()
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 }
 
@@ -162,9 +162,9 @@ func CancelOrderHandler(c *gin.Context) {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
-	global.Wg.Add(1)
-	go db.CancelCompleteOrder(c.Copy().Request.Context(), orderID.ID, "Order Cancelled by User", &global.Wg)
+	global.WaitGroup.Add(1)
+	go db.CancelCompleteOrder(c.Copy().Request.Context(), orderID.ID, "Order Cancelled by User", &global.WaitGroup)
 
-	global.Wg.Wait()
+	global.WaitGroup.Wait()
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 }

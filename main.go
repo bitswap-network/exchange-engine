@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -12,15 +17,14 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
-	"github.com/shopspring/decimal"
-	db "v1.1-fulfiller/db"
-	global "v1.1-fulfiller/global"
+	config "v1.1-fulfiller/config"
+	"v1.1-fulfiller/db"
 	ob "v1.1-fulfiller/orderbook"
-	s3 "v1.1-fulfiller/s3"
+	"v1.1-fulfiller/s3"
 )
 
 var exchange = ob.NewOrderBook()
-var ENV_MODE string
+var ENV_MAP map[string]string
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
@@ -29,10 +33,11 @@ func rootHandler(c *gin.Context) {
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println(err.Error())
 	}
-	ENV_MODE = os.Getenv("ENV_MODE")
-	gin.SetMode(ENV_MODE)
+	config.Setup()
+	s3.Setup()
+	db.Setup()
 	SetETHUSD()
 	// Uncomment to use S3 saved orderbook state on launch
 	recoverOrderbook := s3.GetOrderbook()
@@ -67,43 +72,47 @@ func RouterSetup() *gin.Engine {
 	return router
 }
 
-func InitOrders(log bool) {
-	exchange.ProcessLimitOrder(ob.Sell, "uniqueID1", decimal.New(50, 0), decimal.New(115, 0))
-	exchange.ProcessLimitOrder(ob.Sell, "uniqueID2", decimal.New(100, 0), decimal.New(110, 0))
-	exchange.ProcessLimitOrder(ob.Buy, "uniqueID3", decimal.New(100, 0), decimal.New(90, 0))
-	exchange.ProcessLimitOrder(ob.Buy, "uniqueID4", decimal.New(50, 0), decimal.New(85, 0))
-	if log {
-		fmt.Println(exchange)
-	}
-}
-
 func main() {
+	gin.SetMode(config.ServerConfig.RunMode)
 	go func() {
 		gocron.Every(10).Seconds().Do(SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
 		gocron.Every(10).Seconds().Do(LogOrderbook)
-		gocron.Every(1).Minute().Do(s3.UploadToS3,exchange.GetOrderbookBytes())
+		gocron.Every(1).Minute().Do(s3.UploadToS3, exchange.GetOrderbookBytes())
 		<-gocron.Start()
 	}()
-	//Adding test orders to book
 
-	port := os.Getenv("PORT")
+	routersInit := RouterSetup()
+	readTimeout := config.ServerConfig.ReadTimeout
+	writeTimeout := config.ServerConfig.WriteTimeout
+	addr := config.ServerConfig.Addr
+	maxHeaderBytes := 1 << 20
+	
+	srv := &http.Server{
+		Addr:           addr,
+		Handler:        routersInit,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:   writeTimeout,
+		MaxHeaderBytes: maxHeaderBytes,
+	}
+	fmt.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
 
-	if port == "" {
-		port = "5050"
-		log.Println("$PORT must be set")
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Listen Err: %s\n", err.Error())
+		}
+	}()
+	quit := make(chan os.Signal)
+
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelterm()
+
+	if err := srv.Shutdown(ctxterm); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
 	}
-	//Must wait for mongo to connect before doing orderbook ops
-	client, cancel := db.MongoConnect()
-	defer cancel()
-	global.Api = global.Server{
-		Router: RouterSetup(),
-		Mongo:  client,
-	}
-	// Uncomment for testing/debugging
-	fmt.Printf("Starting server at port %s\n", port)
-	fmt.Println(ENV_MODE)
-	if err := global.Api.Router.Run(":" + port); err != nil {
-		log.Fatal(err)
-	}
+	log.Println("Server exiting")
 }

@@ -199,8 +199,8 @@ func (ob *OrderBook) processQueue(orderQueue *OrderQueue, quantityToTrade decima
 			}
 		} else {
 			log.Println("validation failed")
-			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.", &global.Wg)
+			global.WaitGroup.Add(1)
+			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.", &global.WaitGroup)
 			ob.CancelOrder(headOrder.ID())
 		}
 	}
@@ -213,8 +213,8 @@ func (ob *OrderBook) Sanitize(orders []*Order) {
 		log.Printf("Validating: %s\n", order.ID())
 		if !ob.validateBalance(order) {
 			log.Printf("Validation failed for: %s\n", order.ID())
-			global.Wg.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.Wg)
+			global.WaitGroup.Add(1)
+			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.WaitGroup)
 			ob.CancelOrder(order.ID())
 		}
 	}
@@ -354,8 +354,7 @@ func (ob *OrderBook) GetOrderbookBytes() (data []byte) {
 }
 
 func (ob *OrderBook) DepthMarshalJSON() (*model.DepthSchema, error) {
-	
-	
+
 	level := ob.asks.MaxPriceQueue()
 	var asks, bids []*model.PriceLevel
 	for level != nil {
@@ -379,9 +378,9 @@ func (ob *OrderBook) DepthMarshalJSON() (*model.DepthSchema, error) {
 		level = ob.bids.LessThan(level.Price())
 	}
 	return &model.DepthSchema{
-		TimeStamp:  time.Now(),
-		Asks:       asks,
-		Bids:       bids,
+		TimeStamp: time.Now(),
+		Asks:      asks,
+		Bids:      bids,
 	}, nil
 
 }

@@ -17,15 +17,15 @@ import (
 
 func ProcessFull(orderlist []*ob.Order) {
 	for _, order := range orderlist {
-		global.Wg.Add(1)
-		go db.FulfillOrder(context.TODO(), order.ID(), 0, &global.Wg)
+		global.WaitGroup.Add(1)
+		go db.FulfillOrder(context.TODO(), order.ID(), 0, &global.WaitGroup)
 	}
 	return
 }
 
 func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) (err error) {
-	global.Wg.Add(1)
-	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, &global.Wg)
+	global.WaitGroup.Add(1)
+	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, &global.WaitGroup)
 	return
 }
 

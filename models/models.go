@@ -11,10 +11,10 @@ type UsernameRequest struct {
 }
 
 type DepthSchema struct {
-	ID         primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
-	TimeStamp  time.Time          `json:"timestamp" bson:"timestamp" binding:"-"`
-	Asks       []*PriceLevel      `json:"asks" bson:"asks" binding:"-"`
-	Bids       []*PriceLevel      `json:"bids" bson:"bids" binding:"-"`
+	ID        primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
+	TimeStamp time.Time          `json:"timestamp" bson:"timestamp" binding:"-"`
+	Asks      []*PriceLevel      `json:"asks" bson:"asks" binding:"-"`
+	Bids      []*PriceLevel      `json:"bids" bson:"bids" binding:"-"`
 }
 type PriceLevel struct {
 	Price    float64 `json:"price"`

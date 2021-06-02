@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"v1.1-fulfiller/config"
 )
 
 // func createHandshake(message string) string {
@@ -39,8 +40,7 @@ func validateHMAC(signature, data []byte) bool {
 func internalServerAuth() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
-		switch ENV_MODE {
-		case "release":
+		if config.IsTest {
 			signature, ok := c.Request.Header["Server-Signature"]
 			if !ok {
 				c.String(http.StatusBadRequest, "Where da signature at doe?")
@@ -56,7 +56,7 @@ func internalServerAuth() gin.HandlerFunc {
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
 			}
-		case "debug":
+		} else {
 			c.Next()
 		}
 	}

@@ -12,50 +12,57 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	config "v1.1-fulfiller/config"
 )
 
-const name = "orderbook"
+type S3Session struct {
+	Session *session.Session
+	Bucket  string
+	Name    string
+}
 
-func AwsGetSession() (sess *session.Session, err error) {
-	sess, err = session.NewSession(&aws.Config{
+var Session = &S3Session{}
+
+func Setup() {
+	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-east-1")},
 	)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		log.Fatal(err)
 	}
-	return sess, nil
+	Session.Session = sess
+	Session.Bucket = config.S3Config.Bucket
+	Session.Name = config.S3Config.LogName
 }
 
 func UploadToS3(data []byte) {
 	file := bytes.NewReader(data)
-	sess, _ := AwsGetSession()
-	uploader := s3manager.NewUploader(sess)
-	fileName := fmt.Sprintf("%s-%v.json", name, time.Now().UnixNano()/int64(time.Millisecond))
+	uploader := s3manager.NewUploader(Session.Session)
+	fileName := fmt.Sprintf("%s-%v.json", Session.Name, time.Now().UnixNano()/int64(time.Millisecond))
 	log.Println("uploading... ", time.Now())
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(os.Getenv("BUCKET")),
+		Bucket: aws.String(config.S3Config.Bucket),
 		Key:    aws.String(fileName),
 		Body:   file,
 	})
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(os.Getenv("BUCKET")),
-		Key:    aws.String(fmt.Sprintf("%s-%s.json", name, "current")),
+		Bucket: aws.String(Session.Bucket),
+		Key:    aws.String(fmt.Sprintf("%s-%s.json", Session.Name, "current")),
 		Body:   file,
 	})
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 	log.Println("done uploading", time.Now())
 }
 
 func GetOrderbook() (data []byte) {
-	sess, _ := AwsGetSession()
-	downloader := s3manager.NewDownloader(sess)
-	log.Println("fetching... ")
+
+	downloader := s3manager.NewDownloader(Session.Session)
+	log.Println("fetching orderbook")
 
 	buf := aws.NewWriteAtBuffer([]byte{})
 	_, err := downloader.Download(buf,
@@ -64,7 +71,7 @@ func GetOrderbook() (data []byte) {
 			Key:    aws.String("orderbook-current.json"),
 		})
 	if err != nil {
-		log.Println("Unable to download item", err)
+		log.Panicln("Unable to download item", err)
 		return nil
 	}
 	data = buf.Bytes()

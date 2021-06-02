@@ -48,7 +48,6 @@ func TestETHUSDRoute(t *testing.T) {
 }
 
 func TestMarketPriceRoute(t *testing.T) {
-	InitOrders(false)
 	var testQuantity int64 = 10
 	respBody := struct {
 		Quantity float64 `json:"quantity"`
