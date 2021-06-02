@@ -87,7 +87,7 @@ func main() {
 	writeTimeout := config.ServerConfig.WriteTimeout
 	addr := config.ServerConfig.Addr
 	maxHeaderBytes := 1 << 20
-	
+
 	srv := &http.Server{
 		Addr:           addr,
 		Handler:        routersInit,
