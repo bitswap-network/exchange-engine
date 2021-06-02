@@ -203,11 +203,11 @@ func TestMarketProcess(t *testing.T) {
 
 func TestOrderBookJSON(t *testing.T) {
 	Setup(true)
-
-	result, _ := json.Marshal(OB)
+	blankOb := NewOrderBook()
+	result, _ := json.Marshal(blankOb)
 	t.Log(string(result))
 
-	if err := json.Unmarshal(result, OB); err != nil {
+	if err := json.Unmarshal(result, blankOb); err != nil {
 		t.Fatal(err)
 	}
 
@@ -215,28 +215,28 @@ func TestOrderBookJSON(t *testing.T) {
 	addDepth(OB, "02-", decimal.New(1, 0))
 	addDepth(OB, "03-", decimal.New(2, 0))
 
-	result, _ = json.Marshal(OB)
+	result, _ = json.Marshal(blankOb)
 	t.Log(string(result))
 
-	Setup(true)
-	if err := json.Unmarshal(result, OB); err != nil {
+	blankOb = NewOrderBook()
+	if err := json.Unmarshal(result, blankOb); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(OB)
+	t.Log(result)
 
-	err := json.Unmarshal([]byte(`[{"side":"fake"}]`), &OB)
+	err := json.Unmarshal([]byte(`[{"side":"fake"}]`), blankOb)
 	if err == nil {
 		t.Fatal("can unmarshal unsupported value")
 	}
 }
 
 func TestPriceCalculation(t *testing.T) {
-	ob := NewOrderBook()
-	addDepth(ob, "05-", decimal.New(10, 0))
-	addDepth(ob, "10-", decimal.New(10, 0))
-	addDepth(ob, "15-", decimal.New(10, 0))
-	t.Log(ob)
+	Setup(true)
+	addDepth(OB, "05-", decimal.New(10, 0))
+	addDepth(OB, "10-", decimal.New(10, 0))
+	addDepth(OB, "15-", decimal.New(10, 0))
+	t.Log(OB)
 
 	price, err := CalculateMarketPrice(Buy, decimal.New(115, 0))
 	if err != nil {
@@ -278,12 +278,12 @@ func TestPriceCalculation(t *testing.T) {
 }
 
 func BenchmarkLimitOrder(b *testing.B) {
-	ob := NewOrderBook()
+	Setup(true)
 	stopwatch := time.Now()
 	for i := 0; i < b.N; i++ {
-		addDepth(ob, "05-", decimal.New(10, 0))                                        // 10 ts
-		addDepth(ob, "10-", decimal.New(10, 0))                                        // 10 ts
-		addDepth(ob, "15-", decimal.New(10, 0))                                        // 10 ts
+		addDepth(OB, "05-", decimal.New(10, 0))                                        // 10 ts
+		addDepth(OB, "10-", decimal.New(10, 0))                                        // 10 ts
+		addDepth(OB, "15-", decimal.New(10, 0))                                        // 10 ts
 		ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0)) // 1 ts
 		ProcessMarketOrder(Sell, decimal.New(200, 0))                                  // 1 ts = total 32
 	}

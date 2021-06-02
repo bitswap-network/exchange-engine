@@ -26,14 +26,12 @@ func GetMarketPriceHandler(c *gin.Context) {
 		orderSide = ob.Sell
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
-		return
 	}
 
 	price, err := ob.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
 	}
 	quantityFloat, _ := quantity.Float64()
 	priceFloat, _ := price.Float64()
@@ -45,21 +43,17 @@ func GetCurrentDepthHandler(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
 	}
 	jsonMarshall, err := json.Marshal(depthMarshal)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
 	}
 	c.Data(http.StatusOK, gin.MIMEJSON, jsonMarshall)
-	return
 }
 
 func GetETHUSDHandler(c *gin.Context) {
 	ETHUSD := <-global.Exchange.ETHUSD
 	// log.Println(global.ETHUSD)
 	c.SecureJSON(http.StatusOK, gin.H{"result": ETHUSD})
-	return
 }
