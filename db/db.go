@@ -70,6 +70,7 @@ func Close(ctx context.Context) error {
 }
 
 func Setup() {
+	log.Println("db setup")
 	var err error
 
 	connectionURI := fmt.Sprintf(connectionStringTemplate, config.DatabaseConfig.AWSKey, config.DatabaseConfig.AWSSecret, config.DatabaseConfig.ClusterEndpoint, config.DatabaseConfig.DatabaseName)
@@ -100,6 +101,7 @@ func Setup() {
 	DB.Collections = *getCollections()
 	DB.IsTest = config.IsTest
 	defer cancel()
+	log.Println("db setup complete")
 }
 
 func GetUserOrders(ctx context.Context, username string) (orders *[]model.OrderSchema, err error) {

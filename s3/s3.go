@@ -24,6 +24,7 @@ type S3Session struct {
 var Session = &S3Session{}
 
 func Setup() {
+	log.Println("s3 setup")
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-east-1")},
 	)
@@ -33,6 +34,7 @@ func Setup() {
 	Session.Session = sess
 	Session.Bucket = config.S3Config.Bucket
 	Session.Name = config.S3Config.LogName
+	log.Println("s3 setup complete")
 }
 
 func UploadToS3(data []byte) {
