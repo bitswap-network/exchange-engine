@@ -31,7 +31,3 @@ func LogDepth() {
 	}
 	db.CreateDepthLog(context.TODO(), depthMarshal)
 }
-
-func LogOrderbook() {
-	log.Println(ob.String())
-}
