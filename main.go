@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,14 +15,12 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
-	config "v1.1-fulfiller/config"
+	"v1.1-fulfiller/config"
 	"v1.1-fulfiller/db"
-	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/global"
+	"v1.1-fulfiller/orderbook"
 	"v1.1-fulfiller/s3"
 )
-
-var exchange = ob.NewOrderBook()
-var ENV_MAP map[string]string
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
@@ -36,19 +32,10 @@ func init() {
 		log.Println(err.Error())
 	}
 	config.Setup()
+	global.Setup()
 	s3.Setup()
 	db.Setup()
-	SetETHUSD()
-	// Uncomment to use S3 saved orderbook state on launch
-	recoverOrderbook := s3.GetOrderbook()
-	if recoverOrderbook != nil {
-		log.Println("unmarshalling fetched orderbook")
-		err = exchange.UnmarshalJSON(recoverOrderbook)
-		if err != nil {
-			log.Println("Error loading fetched orderbook")
-		}
-		log.Println(exchange.String())
-	}
+	orderbook.Setup(false)
 }
 
 func RouterSetup() *gin.Engine {
@@ -74,13 +61,6 @@ func RouterSetup() *gin.Engine {
 
 func main() {
 	gin.SetMode(config.ServerConfig.RunMode)
-	go func() {
-		gocron.Every(10).Seconds().Do(SetETHUSD)
-		gocron.Every(5).Minutes().Do(LogDepth)
-		gocron.Every(10).Seconds().Do(LogOrderbook)
-		gocron.Every(1).Minute().Do(s3.UploadToS3, exchange.GetOrderbookBytes())
-		<-gocron.Start()
-	}()
 
 	routersInit := RouterSetup()
 	readTimeout := config.ServerConfig.ReadTimeout
@@ -95,24 +75,38 @@ func main() {
 		WriteTimeout:   writeTimeout,
 		MaxHeaderBytes: maxHeaderBytes,
 	}
-	fmt.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+		gocron.Every(10).Seconds().Do(global.SetETHUSD)
+		gocron.Every(5).Minutes().Do(LogDepth)
+		gocron.Every(10).Seconds().Do(LogOrderbook)
+		gocron.Every(1).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
+		<-gocron.Start()
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Listen Err: %s\n", err.Error())
 		}
 	}()
-	quit := make(chan os.Signal)
-
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	log.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
 	<-quit
-	log.Println("Shutting down server...")
+	log.Printf("Server stopped via: %v", <-quit)
 
 	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelterm()
+	defer func() {
+		close(global.Exchange.ETHUSD)
+		err := db.DB.Client.Disconnect(ctxterm)
+		if err != nil {
+			log.Print(err.Error())
+		}
+		cancelterm()
+	}()
 
 	if err := srv.Shutdown(ctxterm); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
-	log.Println("Server exiting")
+	log.Println("Server gracefully shutdown.")
 }
