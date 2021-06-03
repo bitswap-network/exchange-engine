@@ -96,9 +96,9 @@ func main() {
 	<-quit
 	log.Printf("Server stopped via: %v", <-quit)
 	err := db.DB.Client.Disconnect(context.Background())
-		if err != nil {
-			log.Print(err.Error())
-		}
+	if err != nil {
+		log.Print(err.Error())
+	}
 	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
 		cancelterm()
