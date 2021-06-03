@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -102,12 +101,13 @@ func Setup() {
 	DB.IsTest = config.IsTest
 	defer cancel()
 	log.Println("db setup complete")
+
 }
 
 func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, error) {
 	log.Printf("fetching user orders: %v\n", username)
 	var ordersArray []model.OrderSchema
-	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete":false})
+	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -117,17 +117,17 @@ func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, e
 	// 	log.Println(err.Error())
 	// }
 	for cursor.Next(ctx) {
-        //Create a value into which the single document can be decoded
-        var elem model.OrderSchema
-        err := cursor.Decode(&elem)
-        if err != nil {
-            log.Println(err)
-        }
-				log.Println(elem)
-        ordersArray = append(ordersArray, elem)
+		//Create a value into which the single document can be decoded
+		var elem model.OrderSchema
+		err := cursor.Decode(&elem)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(elem)
+		ordersArray = append(ordersArray, elem)
 
-    }
-	log.Printf("done fetching %v orders",ordersArray)
+	}
+	log.Printf("done fetching %v orders", ordersArray)
 	return ordersArray, nil
 }
 
@@ -166,9 +166,8 @@ func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
 	return nil
 }
 
-func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64, waitGroup *sync.WaitGroup) error {
+func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64) error {
 	log.Printf("update order price: %v\n", orderID)
-	defer global.WaitGroup.Done()
 
 	update := bson.M{"$set": bson.M{"orderPrice": orderPrice}}
 	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
@@ -179,10 +178,9 @@ func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64, w
 	return nil
 }
 
-func CancelCompleteOrder(ctx context.Context, orderID string, errorString string, waitGroup *sync.WaitGroup) error {
+func CancelCompleteOrder(ctx context.Context, orderID string, errorString string) error {
 
 	log.Printf("cancel complete: %v\n", orderID)
-	defer global.WaitGroup.Done()
 
 	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now()}}
 	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
@@ -192,13 +190,12 @@ func CancelCompleteOrder(ctx context.Context, orderID string, errorString string
 	return nil
 }
 
-func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *sync.WaitGroup) error {
-	ETHUSD := <-global.Exchange.ETHUSD
+func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
+	ETHUSD := global.Exchange.ETHUSD
 
 	log.Printf("fulfill: %v\n", orderID)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
-	defer global.WaitGroup.Done()
 
 	//Finding order in database
 	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
@@ -249,14 +246,13 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, waitGroup *
 	return nil
 }
 
-func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64, waitGroup *sync.WaitGroup) (err error) {
-	ETHUSD := <-global.Exchange.ETHUSD
+func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64) error {
+	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *model.OrderSchema
 	var userDoc *model.UserSchema
-	defer global.WaitGroup.Done()
 
-	err = OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
+	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -301,13 +297,13 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
-		log.Println("Insufficient Balance")
+		log.Println(err.Error())
 		return err
 	}
 	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
-		log.Println("Insufficient Balance")
+		log.Println(err.Error())
 		return err
 	}
 	return nil

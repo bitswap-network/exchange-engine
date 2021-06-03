@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
 	db "v1.1-fulfiller/db"
-	global "v1.1-fulfiller/global"
 	model "v1.1-fulfiller/models"
 	ob "v1.1-fulfiller/orderbook"
 )
@@ -37,6 +37,7 @@ func SanitizeHandler(c *gin.Context) {
 	}
 	go ob.Sanitize(orderList)
 	c.String(http.StatusOK, "OK")
+	return
 }
 
 func MarketOrderHandler(c *gin.Context) {
@@ -71,35 +72,36 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := ob.ProcessMarketOrder(orderSide, orderQuantity)
+	if error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
-	go db.UpdateOrderPrice(c.Copy().Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity, &global.WaitGroup)
+	error = db.UpdateOrderPrice(c.Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	// If any orders have been fulfilled, process them
 	if len(ordersDone) > 0 {
-		ProcessFull(ordersDone)
+		go ProcessFull(ordersDone)
 	}
 	// If any orders have been partially fulfilled, process them
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessedFloat)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		global.WaitGroup.Add(1)
-		go db.PartialFulfillOrder(c.Copy().Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, &global.WaitGroup)
-
+		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 	} else {
 		//add checks & validators
-		global.WaitGroup.Add(1)
-		go db.FulfillOrder(c.Copy().Request.Context(), order.OrderID, totalPriceFloat, &global.WaitGroup)
+		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat)
 	}
-	global.WaitGroup.Wait()
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
+	return
 }
 
 func LimitOrderHandler(c *gin.Context) {
@@ -124,7 +126,11 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 	//add error handling
-	db.CreateOrder(c.Request.Context(), &order)
+	error := db.CreateOrder(c.Request.Context(), &order)
+	if error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
@@ -140,12 +146,13 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 	if ordersDone != nil {
-		ProcessFull(ordersDone)
+		go ProcessFull(ordersDone)
 	}
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessedFloat)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
+	return
 }
 
 func CancelOrderHandler(c *gin.Context) {
@@ -162,9 +169,8 @@ func CancelOrderHandler(c *gin.Context) {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
-	global.WaitGroup.Add(1)
-	go db.CancelCompleteOrder(c.Copy().Request.Context(), orderID.ID, "Order Cancelled by User", &global.WaitGroup)
+	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
 
-	global.WaitGroup.Wait()
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
+	return
 }

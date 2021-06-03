@@ -219,7 +219,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 		} else {
 			log.Println("validation failed")
 			global.WaitGroup.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.", &global.WaitGroup)
+			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 			CancelOrder(headOrder.ID())
 		}
 	}
@@ -228,16 +228,21 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 
 //change to only validate users associated with orders
 func Sanitize(orders []*Order) {
+	var valFail = false
 	for _, order := range orders {
-		log.Printf("Validating: %s\n", order.ID())
-		if !validateBalance(order) {
-			log.Printf("Validation failed for: %s\n", order.ID())
-			global.WaitGroup.Add(1)
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.", &global.WaitGroup)
-			CancelOrder(order.ID())
-		}
+		go func(order *Order) {
+			log.Printf("Validating: %s\n", order.ID())
+			if !validateBalance(order) {
+				valFail = true
+				log.Printf("Validation failed for: %s\n", order.ID())
+				go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
+				CancelOrder(order.ID())
+			}
+		}(order)
 	}
-	go s3.UploadToS3(GetOrderbookBytes())
+	if valFail {
+		go s3.UploadToS3(GetOrderbookBytes())
+	}
 }
 
 // internal user balance
@@ -250,7 +255,7 @@ func validateBalance(order *Order) bool {
 	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
 	totalQuantity, _ := (order.Quantity()).Float64()
 	if order.Side() == Buy {
-		return totalPrice/ <-global.Exchange.ETHUSD <= balance.Ether
+		return totalPrice/global.Exchange.ETHUSD <= balance.Ether
 	} else {
 		return totalQuantity <= balance.Bitclout
 	}
@@ -262,7 +267,6 @@ func GetOrder(orderID string) *Order {
 	if !ok {
 		return nil
 	}
-
 	return e.Value.(*Order)
 }
 
@@ -318,7 +322,6 @@ func CalculateMarketPrice(side Side, quantity decimal.Decimal) (price decimal.De
 	if quantity.Sign() > 0 {
 		err = ErrInsufficientQuantity
 	}
-
 	return
 }
 

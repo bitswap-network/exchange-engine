@@ -53,7 +53,6 @@ func GetCurrentDepthHandler(c *gin.Context) {
 }
 
 func GetETHUSDHandler(c *gin.Context) {
-	ETHUSD := <-global.Exchange.ETHUSD
 	// log.Println(global.ETHUSD)
-	c.SecureJSON(http.StatusOK, gin.H{"result": ETHUSD})
+	c.SecureJSON(http.StatusOK, gin.H{"result": global.Exchange.ETHUSD})
 }

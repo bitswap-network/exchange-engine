@@ -60,6 +60,7 @@ func RouterSetup() *gin.Engine {
 }
 
 func main() {
+
 	gin.SetMode(config.ServerConfig.RunMode)
 
 	routersInit := RouterSetup()
@@ -94,14 +95,12 @@ func main() {
 	log.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
 	<-quit
 	log.Printf("Server stopped via: %v", <-quit)
-
-	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		close(global.Exchange.ETHUSD)
-		err := db.DB.Client.Disconnect(ctxterm)
+	err := db.DB.Client.Disconnect(context.Background())
 		if err != nil {
 			log.Print(err.Error())
 		}
+	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
 		cancelterm()
 	}()
 

@@ -7,20 +7,17 @@ import (
 	"time"
 
 	db "v1.1-fulfiller/db"
-	global "v1.1-fulfiller/global"
 	ob "v1.1-fulfiller/orderbook"
 )
 
 func ProcessFull(orderlist []*ob.Order) {
 	for _, order := range orderlist {
-		global.WaitGroup.Add(1)
-		go db.FulfillOrder(context.TODO(), order.ID(), 0, &global.WaitGroup)
+		go db.FulfillOrder(context.TODO(), order.ID(), 0)
 	}
 }
 
 func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) {
-	global.WaitGroup.Add(1)
-	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, &global.WaitGroup)
+	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0)
 }
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {

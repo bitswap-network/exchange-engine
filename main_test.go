@@ -41,7 +41,7 @@ func TestETHUSDRoute(t *testing.T) {
 		t.Errorf("ETHUSD Test Error: %v\n", err)
 		return
 	}
-	if respBody.Result != <-global.Exchange.ETHUSD {
+	if respBody.Result != global.Exchange.ETHUSD {
 		t.Errorf("Unexpected Response: %v\n", respBody)
 		return
 	}

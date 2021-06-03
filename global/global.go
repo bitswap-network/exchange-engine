@@ -14,7 +14,7 @@ import (
 )
 
 type ExchangeRate struct {
-	ETHUSD     chan float64
+	ETHUSD     float64
 	LastUpdate int64
 	FEE        float64
 }
@@ -25,7 +25,6 @@ var WaitGroup sync.WaitGroup
 
 func Setup() {
 	log.Println("global setup")
-	Exchange.ETHUSD = make(chan float64)
 	Exchange.FEE = 0.02
 	SetETHUSD()
 	log.Println("global setup complete")
@@ -40,8 +39,8 @@ func SetETHUSD() {
 		log.Println(err.Error())
 	}
 	Exchange.LastUpdate = time.Now().UnixNano() / int64(time.Millisecond)
-	go func() { Exchange.ETHUSD <- price }()
-	log.Printf("Current ETHUSD price: %f", <-Exchange.ETHUSD)
+	Exchange.ETHUSD = price
+	log.Printf("Current ETHUSD price: %f", Exchange.ETHUSD)
 }
 func getJson(url string, target interface{}) error {
 	r, err := http.Get(url)
