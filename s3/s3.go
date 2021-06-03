@@ -50,9 +50,15 @@ func UploadToS3(data []byte) {
 	if err != nil {
 		log.Panicln(err)
 	}
+	var backupTail string
+	if(config.IsTest){
+		backupTail = "current-staging"
+	}else{
+			backupTail = "current"
+	}
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(Session.Bucket),
-		Key:    aws.String(fmt.Sprintf("%s-%s.json", Session.Name, "current")),
+		Key:    aws.String(fmt.Sprintf("%s-%s.json", Session.Name, backupTail)),
 		Body:   file,
 	})
 	if err != nil {
@@ -63,6 +69,13 @@ func UploadToS3(data []byte) {
 
 func GetOrderbook() (data []byte) {
 
+	var backupTail string
+	if(config.IsTest){
+		backupTail = "current-staging"
+	}else{
+			backupTail = "current"
+	}
+
 	downloader := s3manager.NewDownloader(Session.Session)
 	log.Println("fetching orderbook")
 
@@ -70,10 +83,10 @@ func GetOrderbook() (data []byte) {
 	_, err := downloader.Download(buf,
 		&s3.GetObjectInput{
 			Bucket: aws.String(os.Getenv("BUCKET")),
-			Key:    aws.String("orderbook-current.json"),
+			Key:    aws.String(fmt.Sprintf("%s-%s.json", Session.Name, backupTail)),
 		})
 	if err != nil {
-		log.Panicln("Unable to download item", err)
+		log.Println("Unable to download item", err)
 		return nil
 	}
 	data = buf.Bytes()

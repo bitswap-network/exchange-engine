@@ -83,7 +83,7 @@ func main() {
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
-		gocron.Every(5).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
+		gocron.Every(1).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
 		<-gocron.Start()
 	}()
 

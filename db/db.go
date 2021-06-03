@@ -125,9 +125,8 @@ func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, e
 		}
 		log.Println(elem)
 		ordersArray = append(ordersArray, elem)
-
 	}
-	log.Printf("done fetching %v orders", ordersArray)
+	log.Println("done fetching orders")
 	return ordersArray, nil
 }
 

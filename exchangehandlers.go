@@ -33,7 +33,10 @@ func SanitizeHandler(c *gin.Context) {
 	var orderList []*ob.Order
 	for _, order := range orders {
 		orderFromState := ob.GetOrder(order.OrderID)
-		orderList = append(orderList, orderFromState)
+		log.Println(orderFromState)
+		if orderFromState != nil {
+			orderList = append(orderList, orderFromState)
+		}
 	}
 	go ob.Sanitize(orderList)
 	c.String(http.StatusOK, "OK")

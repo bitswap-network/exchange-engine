@@ -39,7 +39,7 @@ func Setup(blank bool) {
 	} else {
 		OB = NewOrderBook()
 	}
-	log.Println("orderbook setup complete")
+	log.Printf("orderbook setup complete\n%v",String())
 }
 
 // NewOrderBook creates Orderbook object
@@ -228,21 +228,17 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 
 //change to only validate users associated with orders
 func Sanitize(orders []*Order) {
-	var valFail = false
 	for _, order := range orders {
 		go func(order *Order) {
 			log.Printf("Validating: %s\n", order.ID())
 			if !validateBalance(order) {
-				valFail = true
 				log.Printf("Validation failed for: %s\n", order.ID())
 				go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
 				CancelOrder(order.ID())
 			}
 		}(order)
 	}
-	if valFail {
-		go s3.UploadToS3(GetOrderbookBytes())
-	}
+	go s3.UploadToS3(GetOrderbookBytes())
 }
 
 // internal user balance
