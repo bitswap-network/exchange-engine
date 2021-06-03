@@ -53,7 +53,7 @@ func Setup() {
 	ServerConfig.RunMode = envMap["ENV_MODE"]
 	ServerConfig.Addr = ":" + envMap["PORT"]
 	if ServerConfig.Addr == ":" {
-		ServerConfig.Addr = ":5050"
+		ServerConfig.Addr = "localhost:5050"
 	}
 	if ServerConfig.RunMode == "release" {
 		IsTest = false

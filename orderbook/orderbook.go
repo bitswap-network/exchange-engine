@@ -242,18 +242,15 @@ func Sanitize(orders []*Order) {
 
 // internal user balance
 func validateBalance(order *Order) bool {
-	ETHUSD := <-global.Exchange.ETHUSD
-	balance, err := db.GetUserBalanceFromOrder(context.TODO(), order.ID())
-	//IMPORTANT: must change - only for debug
+	balance, err := db.GetUserBalance(context.TODO(), order.User())
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-
 	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
 	totalQuantity, _ := (order.Quantity()).Float64()
 	if order.Side() == Buy {
-		return totalPrice/ETHUSD <= balance.Ether
+		return totalPrice/ <-global.Exchange.ETHUSD <= balance.Ether
 	} else {
 		return totalQuantity <= balance.Bitclout
 	}

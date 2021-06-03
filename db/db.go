@@ -104,32 +104,37 @@ func Setup() {
 	log.Println("db setup complete")
 }
 
-func GetUserOrders(ctx context.Context, username string) (orders *[]model.OrderSchema, err error) {
+func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, error) {
 	log.Printf("fetching user orders: %v\n", username)
-	var ordersDoc *[]model.OrderSchema
-
-	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username})
-	if err != nil {
-		return nil, err
-	}
-	if err = cursor.All(ctx, &ordersDoc); err != nil {
-		log.Println(err)
-	}
-	log.Println("done fetching orders")
-	return ordersDoc, nil
-}
-
-func GetUserBalanceFromOrder(ctx context.Context, orderID string) (balance *model.UserBalance, err error) {
-	log.Printf("fetching user balance from: %v\n", orderID)
-	var userDoc *model.UserSchema
-	var orderDoc *model.OrderSchema
-
-	err = OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
+	var ordersArray []model.OrderSchema
+	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete":false})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-	err = UserCollection().FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	defer cursor.Close(ctx)
+	// if err = cursor.All(ctx, ordersDoc); err != nil {
+	// 	log.Println(err.Error())
+	// }
+	for cursor.Next(ctx) {
+        //Create a value into which the single document can be decoded
+        var elem model.OrderSchema
+        err := cursor.Decode(&elem)
+        if err != nil {
+            log.Println(err)
+        }
+				log.Println(elem)
+        ordersArray = append(ordersArray, elem)
+
+    }
+	log.Printf("done fetching %v orders",ordersArray)
+	return ordersArray, nil
+}
+
+func GetUserBalance(ctx context.Context, username string) (balance *model.UserBalance, err error) {
+	log.Printf("fetching user balance from: %v\n", username)
+	var userDoc *model.UserSchema
+	err = UserCollection().FindOne(ctx, bson.M{"username": username}).Decode(&userDoc)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

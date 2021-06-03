@@ -3,6 +3,7 @@ package orderbook
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -26,6 +27,11 @@ func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timest
 		price:     price,
 		timestamp: timestamp,
 	}
+}
+
+func (o *Order) User() string {
+	s := strings.Split(o.id, "-")
+	return s[2]
 }
 
 // ID returns orderID field copy

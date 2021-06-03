@@ -79,14 +79,14 @@ func main() {
 	quit := make(chan os.Signal, 1)
 
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetETHUSD)
 		gocron.Every(5).Minutes().Do(LogDepth)
-		gocron.Every(10).Seconds().Do(LogOrderbook)
-		gocron.Every(1).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
+		gocron.Every(5).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
 		<-gocron.Start()
+	}()
 
+	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Listen Err: %s\n", err.Error())
 		}

@@ -40,10 +40,11 @@ func validateHMAC(signature, data []byte) bool {
 func internalServerAuth() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
-		if config.IsTest {
+		if !config.IsTest {
 			signature, ok := c.Request.Header["Server-Signature"]
 			if !ok {
-				c.String(http.StatusBadRequest, "Where da signature at doe?")
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
 			}
 			messageBuffer, err := ioutil.ReadAll(c.Request.Body)
 			log.Println(string(messageBuffer))
@@ -55,6 +56,7 @@ func internalServerAuth() gin.HandlerFunc {
 				c.Next()
 			} else {
 				c.AbortWithStatus(http.StatusUnauthorized)
+				return
 			}
 		} else {
 			c.Next()
