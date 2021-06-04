@@ -10,21 +10,20 @@ import (
 )
 
 func addDepth(ob *OrderBook, prefix string, quantity decimal.Decimal) {
-	Setup(true)
 	for i := 50; i < 100; i = i + 10 {
-		ProcessLimitOrder(Buy, fmt.Sprintf("%sbuy-%d", prefix, i), quantity, decimal.New(int64(i), 0))
+		ob.ProcessLimitOrder(Buy, fmt.Sprintf("%sbuy-%d", prefix, i), quantity, decimal.New(int64(i), 0))
 	}
 
 	for i := 100; i < 150; i = i + 10 {
-		ProcessLimitOrder(Sell, fmt.Sprintf("%ssell-%d", prefix, i), quantity, decimal.New(int64(i), 0))
+		ob.ProcessLimitOrder(Sell, fmt.Sprintf("%ssell-%d", prefix, i), quantity, decimal.New(int64(i), 0))
 	}
 }
 
 func TestLimitPlace(t *testing.T) {
-	Setup(true)
+	ob := NewOrderBook()
 	quantity := decimal.New(2, 0)
 	for i := 50; i < 100; i = i + 10 {
-		done, partial, partialQty, err := ProcessLimitOrder(Buy, fmt.Sprintf("buy-%d", i), quantity, decimal.New(int64(i), 0))
+		done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, fmt.Sprintf("buy-%d", i), quantity, decimal.New(int64(i), 0))
 		if len(done) != 0 {
 			t.Fatal("OrderBook failed to process limit order (done is not empty)")
 		}
@@ -40,7 +39,7 @@ func TestLimitPlace(t *testing.T) {
 	}
 
 	for i := 100; i < 150; i = i + 10 {
-		done, partial, partialQty, err := ProcessLimitOrder(Sell, fmt.Sprintf("sell-%d", i), quantity, decimal.New(int64(i), 0))
+		done, partial, partialQty, err := ob.ProcessLimitOrder(Sell, fmt.Sprintf("sell-%d", i), quantity, decimal.New(int64(i), 0))
 		if len(done) != 0 {
 			t.Fatal("OrderBook failed to process limit order (done is not empty)")
 		}
@@ -55,24 +54,24 @@ func TestLimitPlace(t *testing.T) {
 		}
 	}
 
-	t.Log(OB)
+	t.Log(ob)
 
-	if GetOrder("fake") != nil {
+	if ob.Order("fake") != nil {
 		t.Fatal("can get fake order")
 	}
 
-	if GetOrder("sell-100") == nil {
+	if ob.Order("sell-100") == nil {
 		t.Fatal("can't get real order")
 	}
 
-	t.Log(Depth())
+	t.Log(ob.Depth())
 }
 
 func TestLimitProcess(t *testing.T) {
-	Setup(true)
-	addDepth(OB, "", decimal.New(2, 0))
+	ob := NewOrderBook()
+	addDepth(ob, "", decimal.New(2, 0))
 
-	done, partial, partialQty, err := ProcessLimitOrder(Buy, "order-b100", decimal.New(1, 0), decimal.New(100, 0))
+	done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, "order-b100", decimal.New(1, 0), decimal.New(100, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,9 +90,9 @@ func TestLimitProcess(t *testing.T) {
 		t.Fatal("Wrong partial quantity processed")
 	}
 
-	t.Log(OB)
+	t.Log(ob)
 
-	done, partial, partialQty, err = ProcessLimitOrder(Buy, "order-b150", decimal.New(10, 0), decimal.New(150, 0))
+	done, partial, partialQty, err = ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(10, 0), decimal.New(150, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,25 +111,25 @@ func TestLimitProcess(t *testing.T) {
 		t.Fatal("Wrong partial quantity processed", partialQty)
 	}
 
-	t.Log(OB)
+	t.Log(ob)
 
-	if _, _, _, err := ProcessLimitOrder(Sell, "buy-70", decimal.New(11, 0), decimal.New(40, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "buy-70", decimal.New(11, 0), decimal.New(40, 0)); err == nil {
 		t.Fatal("Can add existing order")
 	}
 
-	if _, _, _, err := ProcessLimitOrder(Sell, "fake-70", decimal.New(0, 0), decimal.New(40, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(0, 0), decimal.New(40, 0)); err == nil {
 		t.Fatal("Can add empty quantity order")
 	}
 
-	if _, _, _, err := ProcessLimitOrder(Sell, "fake-70", decimal.New(10, 0), decimal.New(0, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(10, 0), decimal.New(0, 0)); err == nil {
 		t.Fatal("Can add zero price")
 	}
 
-	if o := CancelOrder("order-b100"); o != nil {
+	if o := ob.CancelOrder("order-b100"); o != nil {
 		t.Fatal("Can cancel done order")
 	}
 
-	done, partial, partialQty, err = ProcessLimitOrder(Sell, "order-s40", decimal.New(11, 0), decimal.New(40, 0))
+	done, partial, partialQty, err = ob.ProcessLimitOrder(Sell, "order-s40", decimal.New(11, 0), decimal.New(40, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,14 +147,14 @@ func TestLimitProcess(t *testing.T) {
 		t.Fatal("Wrong partialQty")
 	}
 
-	t.Log(OB)
+	t.Log(ob)
 }
 
 func TestMarketProcess(t *testing.T) {
-	Setup(true)
-	addDepth(OB, "", decimal.New(2, 0))
+	ob := NewOrderBook()
+	addDepth(ob, "", decimal.New(2, 0))
 
-	done, partial, partialQty, left, _, err := ProcessMarketOrder(Buy, decimal.New(3, 0))
+	done, partial, partialQty, left, _, err := ob.ProcessMarketOrder(Buy, decimal.New(3, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,13 +169,13 @@ func TestMarketProcess(t *testing.T) {
 
 	t.Log("Done", done)
 	t.Log("Partial", partial)
-	t.Log(OB)
+	t.Log(ob)
 
-	if _, _, _, _, _, err := ProcessMarketOrder(Buy, decimal.New(0, 0)); err == nil {
+	if _, _, _, _, _, err := ob.ProcessMarketOrder(Buy, decimal.New(0, 0)); err == nil {
 		t.Fatal("Can add zero quantity order")
 	}
 
-	done, partial, partialQty, left, _, err = ProcessMarketOrder(Sell, decimal.New(12, 0))
+	done, partial, partialQty, left, _, err = ob.ProcessMarketOrder(Sell, decimal.New(12, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,47 +197,47 @@ func TestMarketProcess(t *testing.T) {
 	}
 
 	t.Log("Done", done)
-	t.Log(OB)
+	t.Log(ob)
 }
 
 func TestOrderBookJSON(t *testing.T) {
-	Setup(true)
-	blankOb := NewOrderBook()
-	result, _ := json.Marshal(blankOb)
+	data := NewOrderBook()
+
+	result, _ := json.Marshal(data)
 	t.Log(string(result))
 
-	if err := json.Unmarshal(result, blankOb); err != nil {
+	if err := json.Unmarshal(result, data); err != nil {
 		t.Fatal(err)
 	}
 
-	addDepth(OB, "01-", decimal.New(10, 0))
-	addDepth(OB, "02-", decimal.New(1, 0))
-	addDepth(OB, "03-", decimal.New(2, 0))
+	addDepth(data, "01-", decimal.New(10, 0))
+	addDepth(data, "02-", decimal.New(1, 0))
+	addDepth(data, "03-", decimal.New(2, 0))
 
-	result, _ = json.Marshal(blankOb)
+	result, _ = json.Marshal(data)
 	t.Log(string(result))
 
-	blankOb = NewOrderBook()
-	if err := json.Unmarshal(result, blankOb); err != nil {
+	data = NewOrderBook()
+	if err := json.Unmarshal(result, data); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(result)
+	t.Log(data)
 
-	err := json.Unmarshal([]byte(`[{"side":"fake"}]`), blankOb)
+	err := json.Unmarshal([]byte(`[{"side":"fake"}]`), &data)
 	if err == nil {
 		t.Fatal("can unmarshal unsupported value")
 	}
 }
 
 func TestPriceCalculation(t *testing.T) {
-	Setup(true)
-	addDepth(OB, "05-", decimal.New(10, 0))
-	addDepth(OB, "10-", decimal.New(10, 0))
-	addDepth(OB, "15-", decimal.New(10, 0))
-	t.Log(OB)
+	ob := NewOrderBook()
+	addDepth(ob, "05-", decimal.New(10, 0))
+	addDepth(ob, "10-", decimal.New(10, 0))
+	addDepth(ob, "15-", decimal.New(10, 0))
+	t.Log(ob)
 
-	price, err := CalculateMarketPrice(Buy, decimal.New(115, 0))
+	price, err := ob.CalculateMarketPrice(Buy, decimal.New(115, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +246,7 @@ func TestPriceCalculation(t *testing.T) {
 		t.Fatal("invalid price", price)
 	}
 
-	price, err = CalculateMarketPrice(Buy, decimal.New(200, 0))
+	price, err = ob.CalculateMarketPrice(Buy, decimal.New(200, 0))
 	if err == nil {
 		t.Fatal("invalid quantity count")
 	}
@@ -258,7 +257,7 @@ func TestPriceCalculation(t *testing.T) {
 
 	// -------
 
-	price, err = CalculateMarketPrice(Sell, decimal.New(115, 0))
+	price, err = ob.CalculateMarketPrice(Sell, decimal.New(115, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +266,7 @@ func TestPriceCalculation(t *testing.T) {
 		t.Fatal("invalid price", price)
 	}
 
-	price, err = CalculateMarketPrice(Sell, decimal.New(200, 0))
+	price, err = ob.CalculateMarketPrice(Sell, decimal.New(200, 0))
 	if err == nil {
 		t.Fatal("invalid quantity count")
 	}
@@ -278,14 +277,14 @@ func TestPriceCalculation(t *testing.T) {
 }
 
 func BenchmarkLimitOrder(b *testing.B) {
-	Setup(true)
+	ob := NewOrderBook()
 	stopwatch := time.Now()
 	for i := 0; i < b.N; i++ {
-		addDepth(OB, "05-", decimal.New(10, 0))                                        // 10 ts
-		addDepth(OB, "10-", decimal.New(10, 0))                                        // 10 ts
-		addDepth(OB, "15-", decimal.New(10, 0))                                        // 10 ts
-		ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0)) // 1 ts
-		ProcessMarketOrder(Sell, decimal.New(200, 0))                                  // 1 ts = total 32
+		addDepth(ob, "05-", decimal.New(10, 0))                                           // 10 ts
+		addDepth(ob, "10-", decimal.New(10, 0))                                           // 10 ts
+		addDepth(ob, "15-", decimal.New(10, 0))                                           // 10 ts
+		ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0)) // 1 ts
+		ob.ProcessMarketOrder(Sell, decimal.New(200, 0))                                  // 1 ts = total 32
 	}
 	elapsed := time.Since(stopwatch)
 	fmt.Printf("\n\nElapsed: %s\nTransactions per second (avg): %f\n", elapsed, float64(b.N*32)/elapsed.Seconds())
