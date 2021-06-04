@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -16,7 +17,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 	quantity, err := decimal.NewFromString(quantityParam)
 	if err != nil {
 		log.Println(err)
-		quantity, _ = decimal.NewFromString("10")
+		quantity, _ = decimal.NewFromString("1")
 	}
 	var orderSide ob.Side
 	if sideParam == "buy" {
@@ -24,21 +25,34 @@ func GetMarketPriceHandler(c *gin.Context) {
 	} else if sideParam == "sell" {
 		orderSide = ob.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid side"})
-		return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 	}
 
-	price, err := exchange.CalculateMarketPrice(orderSide, quantity)
+	price, err := ob.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"msg": err})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 	quantityFloat, _ := quantity.Float64()
 	priceFloat, _ := price.Float64()
 	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantityFloat, "price": priceFloat, "side": sideParam})
 }
+
+func GetCurrentDepthHandler(c *gin.Context) {
+	depthMarshal, err := ob.DepthMarshalJSON()
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	jsonMarshall, err := json.Marshal(depthMarshal)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	c.Data(http.StatusOK, gin.MIMEJSON, jsonMarshall)
+}
+
 func GetETHUSDHandler(c *gin.Context) {
-	log.Println(global.ETHUSD)
-	c.SecureJSON(http.StatusOK, gin.H{"result": global.ETHUSD})
+	// log.Println(global.ETHUSD)
+	c.SecureJSON(http.StatusOK, gin.H{"result": global.Exchange.ETHUSD})
 }

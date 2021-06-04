@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -12,14 +15,12 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
-	"github.com/shopspring/decimal"
-	db "v1.1-fulfiller/db"
-	global "v1.1-fulfiller/global"
-	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/config"
+	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/global"
+	"v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/s3"
 )
-
-var exchange = ob.NewOrderBook()
-var ENV_MODE string
 
 func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Bitswap Exchange Manager")
@@ -28,94 +29,83 @@ func rootHandler(c *gin.Context) {
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println(err.Error())
 	}
-	ENV_MODE = os.Getenv("ENV_MODE")
-	gin.SetMode(ENV_MODE)
-	SetETHUSD()
-	// Uncomment to use S3 saved orderbook state on launch
-	// recoverOrderbook := GetOrderbookS3()
-	// if recoverOrderbook != nil {
-	// 	log.Println("unmarshalling fetched orderbook")
-	// 	err = exchange.UnmarshalJSON(recoverOrderbook)
-	// 	if err != nil {
-	// 		log.Println("Error loading fetched orderbook")
-	// 	}
-	// }
+	config.Setup()
+	global.Setup()
+	s3.Setup()
+	db.Setup()
+	orderbook.Setup(false)
 }
 
 func RouterSetup() *gin.Engine {
 	router := gin.Default()
-
 	router.Use(cors.Default())
 	router.Use(helmet.Default())
-
 	router.GET("/", rootHandler)
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
 	router.GET("/ethusd", GetETHUSDHandler)
+	router.GET("/orderbook-state", GetCurrentDepthHandler)
+
 	//Debug mode bypasses server auth
 	exchangeRouter := router.Group("/exchange", internalServerAuth())
-
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
 	exchangeRouter.POST("/cancel", CancelOrderHandler)
-
+	exchangeRouter.POST("/sanitize", SanitizeHandler)
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 	})
 	return router
 }
 
-func InitOrders(log bool) {
-	exchange.ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(50, 0), decimal.New(115, 0))
-
-	exchange.ProcessLimitOrder(ob.Sell, "uinqueID1", decimal.New(100, 0), decimal.New(110, 0))
-	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID", decimal.New(100, 0), decimal.New(90, 0))
-	exchange.ProcessLimitOrder(ob.Buy, "uinqubvvbeID1", decimal.New(50, 0), decimal.New(85, 0))
-	if log {
-		fmt.Println(exchange)
-	}
-}
-
 func main() {
+
+	gin.SetMode(config.ServerConfig.RunMode)
+
+	routersInit := RouterSetup()
+	readTimeout := config.ServerConfig.ReadTimeout
+	writeTimeout := config.ServerConfig.WriteTimeout
+	addr := config.ServerConfig.Addr
+	maxHeaderBytes := 1 << 20
+
+	srv := &http.Server{
+		Addr:           addr,
+		Handler:        routersInit,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:   writeTimeout,
+		MaxHeaderBytes: maxHeaderBytes,
+	}
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		// Uncomment to run orderbook S3 backup script
-		// gocron.Every(60).Seconds().Do(UploadToS3, getOrderbookBytes(), "orderbook")
-		gocron.Every(5).Seconds().Do(SetETHUSD)
+		gocron.Every(10).Seconds().Do(global.SetETHUSD)
+		gocron.Every(5).Minutes().Do(LogDepth)
+		gocron.Every(1).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
 		<-gocron.Start()
 	}()
-	//Adding test orders to book
-	InitOrders(true)
 
-	// mongoDBDialInfo := &mgo.DialInfo{
-	// 	Addrs:    []string{os.Getenv("MONGODB_ENDPOINT")},
-	// 	Timeout:  5 * time.Second,
-	// 	Database: os.Getenv("MONGODB_DATABASE"),
-	// 	Username: os.Getenv("MONGODB_USERNAME"),
-	// 	Password: os.Getenv("MONGODB_PASSWORD"),
-	// }
-	// Create a session which maintains a pool of socket connections
-	// to our MongoDB.
-
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		log.Fatal("$PORT must be set")
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Listen Err: %s\n", err.Error())
+		}
+	}()
+	log.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
+	<-quit
+	log.Printf("Server stopped via: %v", <-quit)
+	err := db.DB.Client.Disconnect(context.Background())
+	if err != nil {
+		log.Print(err.Error())
 	}
+	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancelterm()
+	}()
 
-	client, cancel := db.MongoConnect()
-	defer cancel()
-	// global.MongoSession.SetMode(mgo.Monotonic, true)
-	global.Api = global.Server{
-		Router: RouterSetup(),
-		Mongo:  client,
+	if err := srv.Shutdown(ctxterm); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
 	}
-
-	fmt.Printf("Starting server at port 5050\n")
-	fmt.Println(os.Getenv("GIN_MODE"))
-	exDepth, _ := exchange.DepthMarshalJSON()
-	fmt.Println(string(exDepth))
-	if err := global.Api.Router.Run(":"+port); err != nil {
-		log.Fatal(err)
-	}
+	log.Println("Server gracefully shutdown.")
 }

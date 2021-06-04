@@ -6,6 +6,32 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type EthPriceAPI struct {
+	Status  string            `json:"status"`
+	Message string            `json:"message"`
+	Result  EthPriceAPIResult `json:"result"`
+}
+type EthPriceAPIResult struct {
+	Ethbtc           string `json:"ethbtc"`
+	Ethbtc_timestamp string `json:"ethbtc_timestamp"`
+	Ethusd           string `json:"ethusd"`
+	Ethusd_timestamp string `json:"ethusd_timestamp"`
+}
+
+type UsernameRequest struct {
+	Username string `json:"username" bson:"username" binding:"required"`
+}
+
+type DepthSchema struct {
+	ID        primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
+	TimeStamp time.Time          `json:"timestamp" bson:"timestamp" binding:"-"`
+	Asks      []*PriceLevel      `json:"asks" bson:"asks" binding:"-"`
+	Bids      []*PriceLevel      `json:"bids" bson:"bids" binding:"-"`
+}
+type PriceLevel struct {
+	Price    float64 `json:"price"`
+	Quantity float64 `json:"quantity"`
+}
 type OrderSchema struct {
 	ID                     primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
 	Username               string             `json:"username" bson:"username" binding:"required"`
