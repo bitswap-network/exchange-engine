@@ -28,14 +28,12 @@ func Setup() {
 }
 
 func SetETHUSD() {
-	log.Println("getting ethusd")
 	apiResp := new(models.EthPriceAPI)
 	err := getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp)
 	if err != nil {
 		log.Println("ERROR ETH USD: ",err)
 		return
 	}
-	log.Println(apiResp)
 	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
 	if err != nil {
 		log.Println("ERROR PARSING FLOAT ETH USD: ",err)
