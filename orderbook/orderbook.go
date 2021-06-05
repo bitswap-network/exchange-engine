@@ -399,6 +399,31 @@ func DepthMarshalJSON() (*model.DepthSchema, error) {
 
 }
 
+func UnmarshalJSONFromDB(data []byte) error {
+	obj := struct {
+		Asks *OrderSide `json:"asks"`
+		Bids *OrderSide `json:"bids"`
+	}{}
+
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+
+	OB.asks = obj.Asks
+	OB.bids = obj.Bids
+	OB.orders = map[string]*list.Element{}
+
+	for _, order := range OB.asks.Orders() {
+		OB.orders[order.Value.(*Order).ID()] = order
+	}
+
+	for _, order := range OB.bids.Orders() {
+		OB.orders[order.Value.(*Order).ID()] = order
+	}
+
+	return nil
+}
+
 // UnmarshalJSON implements json.Unmarshaler interface
 func UnmarshalJSON(data []byte) error {
 	obj := struct {
