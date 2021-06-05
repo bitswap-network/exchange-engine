@@ -102,7 +102,7 @@ func main() {
 	}
 	ctxterm, cancelterm := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
-		s3.UploadToS3(orderbook.GetOrderbookBytes())
+		// s3.UploadToS3(orderbook.GetOrderbookBytes())
 		cancelterm()
 	}()
 
