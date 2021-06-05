@@ -33,7 +33,10 @@ func Setup() {
 func SetETHUSD() {
 	log.Println("getting ethusd")
 	apiResp := new(models.EthPriceAPI)
-	getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp)
+	err := getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp)
+	if err != nil {
+		log.Println(err)
+	}
 	log.Println(apiResp)
 	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
 	if err != nil {
