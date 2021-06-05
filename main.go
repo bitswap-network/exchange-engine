@@ -35,7 +35,7 @@ func init() {
 	global.Setup()
 	s3.Setup()
 	db.Setup()
-	orderbook.Setup(true)
+	orderbook.Setup(false)
 }
 
 func RouterSetup() *gin.Engine {
