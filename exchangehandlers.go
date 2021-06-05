@@ -12,6 +12,7 @@ import (
 	db "v1.1-fulfiller/db"
 	model "v1.1-fulfiller/models"
 	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/s3"
 )
 
 func SanitizeHandler(c *gin.Context) {
@@ -103,6 +104,7 @@ func MarketOrderHandler(c *gin.Context) {
 		//add checks & validators
 		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat)
 	}
+	go s3.UploadToS3(ob.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
@@ -154,6 +156,7 @@ func LimitOrderHandler(c *gin.Context) {
 	if partialDone != nil {
 		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
+	go s3.UploadToS3(ob.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
@@ -172,8 +175,9 @@ func CancelOrderHandler(c *gin.Context) {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
-	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
 
+	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
+	go s3.UploadToS3(ob.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 	return
 }
