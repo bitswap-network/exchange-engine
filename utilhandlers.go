@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
-	global "v1.1-fulfiller/global"
-	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/global"
+	"v1.1-fulfiller/orderbook"
 )
 
 func GetMarketPriceHandler(c *gin.Context) {
@@ -19,16 +19,16 @@ func GetMarketPriceHandler(c *gin.Context) {
 		log.Println(err)
 		quantity, _ = decimal.NewFromString("1")
 	}
-	var orderSide ob.Side
+	var orderSide orderbook.Side
 	if sideParam == "buy" {
-		orderSide = ob.Buy
+		orderSide = orderbook.Buy
 	} else if sideParam == "sell" {
-		orderSide = ob.Sell
+		orderSide = orderbook.Sell
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 	}
 
-	price, err := ob.CalculateMarketPrice(orderSide, quantity)
+	price, err := orderbook.CalculateMarketPrice(orderSide, quantity)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -39,7 +39,7 @@ func GetMarketPriceHandler(c *gin.Context) {
 }
 
 func GetCurrentDepthHandler(c *gin.Context) {
-	depthMarshal, err := ob.DepthMarshalJSON()
+	depthMarshal, err := orderbook.DepthMarshalJSON()
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

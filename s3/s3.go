@@ -12,7 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	config "v1.1-fulfiller/config"
+	"v1.1-fulfiller/config"
 )
 
 type S3Session struct {

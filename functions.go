@@ -6,17 +6,17 @@ import (
 	"log"
 	"time"
 
-	db "v1.1-fulfiller/db"
-	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/orderbook"
 )
 
-func ProcessFull(orderlist []*ob.Order) {
+func ProcessFull(orderlist []*orderbook.Order) {
 	for _, order := range orderlist {
 		go db.FulfillOrder(context.TODO(), order.ID(), 0)
 	}
 }
 
-func ProcessPartial(order *ob.Order, partialQuantityProcessed float64) {
+func ProcessPartial(order *orderbook.Order, partialQuantityProcessed float64) {
 	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0)
 }
 
@@ -25,7 +25,7 @@ func OrderIDGen(orderType string, orderSide string, username string, quantity fl
 }
 
 func LogDepth() {
-	depthMarshal, err := ob.DepthMarshalJSON()
+	depthMarshal, err := orderbook.DepthMarshalJSON()
 	if err != nil {
 		log.Println(err)
 	}

@@ -9,14 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
-	db "v1.1-fulfiller/db"
-	model "v1.1-fulfiller/models"
-	ob "v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/models"
+	"v1.1-fulfiller/orderbook"
 	"v1.1-fulfiller/s3"
 )
 
 func SanitizeHandler(c *gin.Context) {
-	var reqBody model.UsernameRequest
+	var reqBody models.UsernameRequest
 	if err := c.ShouldBindBodyWith(&reqBody, binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -31,32 +31,32 @@ func SanitizeHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	var orderList []*ob.Order
+	var orderList []*orderbook.Order
 	for _, order := range orders {
-		orderFromState := ob.GetOrder(order.OrderID)
+		orderFromState := orderbook.GetOrder(order.OrderID)
 		log.Println(orderFromState)
 		if orderFromState != nil {
 			orderList = append(orderList, orderFromState)
 		}
 	}
-	go ob.Sanitize(orderList)
+	go orderbook.Sanitize(orderList)
 	c.String(http.StatusOK, "OK")
 	return
 }
 
 func MarketOrderHandler(c *gin.Context) {
-	var order model.OrderSchema
+	var order models.OrderSchema
 	if err := c.ShouldBindBodyWith(&order, binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var orderSide ob.Side
+	var orderSide orderbook.Side
 	if order.OrderSide == "buy" {
-		orderSide = ob.Buy
+		orderSide = orderbook.Buy
 	} else if order.OrderSide == "sell" {
-		orderSide = ob.Sell
+		orderSide = orderbook.Sell
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
@@ -72,10 +72,10 @@ func MarketOrderHandler(c *gin.Context) {
 
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": ob.ErrInvalidQuantity.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
-	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := ob.ProcessMarketOrder(orderSide, orderQuantity)
+	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -104,23 +104,23 @@ func MarketOrderHandler(c *gin.Context) {
 		//add checks & validators
 		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat)
 	}
-	go s3.UploadToS3(ob.GetOrderbookBytes())
+	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
 
 func LimitOrderHandler(c *gin.Context) {
-	var order model.OrderSchema
+	var order models.OrderSchema
 	if err := c.ShouldBindBodyWith(&order, binding.JSON); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var orderSide ob.Side
+	var orderSide orderbook.Side
 	if order.OrderSide == "buy" {
-		orderSide = ob.Buy
+		orderSide = orderbook.Buy
 	} else if order.OrderSide == "sell" {
-		orderSide = ob.Sell
+		orderSide = orderbook.Sell
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
@@ -140,11 +140,11 @@ func LimitOrderHandler(c *gin.Context) {
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": ob.ErrInvalidQuantity.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
 
-	ordersDone, partialDone, partialQuantityProcessed, error := ob.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
+	ordersDone, partialDone, partialQuantityProcessed, error := orderbook.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
@@ -156,7 +156,7 @@ func LimitOrderHandler(c *gin.Context) {
 	if partialDone != nil {
 		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
-	go s3.UploadToS3(ob.GetOrderbookBytes())
+	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
@@ -170,14 +170,14 @@ func CancelOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrderId := ob.CancelOrder(orderID.ID)
+	cancelledOrderId := orderbook.CancelOrder(orderID.ID)
 	if cancelledOrderId == nil {
 		c.String(http.StatusConflict, "Invalid order ID")
 		return
 	}
 
 	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
-	go s3.UploadToS3(ob.GetOrderbookBytes())
+	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 	return
 }

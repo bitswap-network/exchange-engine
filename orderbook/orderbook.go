@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	db "v1.1-fulfiller/db"
-	global "v1.1-fulfiller/global"
-	model "v1.1-fulfiller/models"
-	s3 "v1.1-fulfiller/s3"
+	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/global"
+	"v1.1-fulfiller/models"
+	"v1.1-fulfiller/s3"
 )
 
 // OrderBook implements standard matching algorithm
@@ -367,14 +367,14 @@ func GetOrderbookBytes() (data []byte) {
 	return data
 }
 
-func DepthMarshalJSON() (*model.DepthSchema, error) {
+func DepthMarshalJSON() (*models.DepthSchema, error) {
 
 	level := OB.asks.MaxPriceQueue()
-	var asks, bids []*model.PriceLevel
+	var asks, bids []*models.PriceLevel
 	for level != nil {
 		priceFloat, _ := level.Price().Float64()
 		volumeFloat, _ := level.Volume().Float64()
-		asks = append(asks, &model.PriceLevel{
+		asks = append(asks, &models.PriceLevel{
 			Price:    priceFloat,
 			Quantity: volumeFloat,
 		})
@@ -385,13 +385,13 @@ func DepthMarshalJSON() (*model.DepthSchema, error) {
 	for level != nil {
 		priceFloat, _ := level.Price().Float64()
 		volumeFloat, _ := level.Volume().Float64()
-		bids = append(bids, &model.PriceLevel{
+		bids = append(bids, &models.PriceLevel{
 			Price:    priceFloat,
 			Quantity: volumeFloat,
 		})
 		level = OB.bids.LessThan(level.Price())
 	}
-	return &model.DepthSchema{
+	return &models.DepthSchema{
 		TimeStamp: time.Now(),
 		Asks:      asks,
 		Bids:      bids,

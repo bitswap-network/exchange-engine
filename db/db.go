@@ -11,9 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	config "v1.1-fulfiller/config"
-	global "v1.1-fulfiller/global"
-	model "v1.1-fulfiller/models"
+	"v1.1-fulfiller/config"
+	"v1.1-fulfiller/global"
+	"v1.1-fulfiller/models"
 )
 
 type DbConfig struct {
@@ -104,9 +104,9 @@ func Setup() {
 
 }
 
-func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, error) {
+func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, error) {
 	log.Printf("fetching user orders: %v\n", username)
-	var ordersArray []model.OrderSchema
+	var ordersArray []models.OrderSchema
 	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
 	if err != nil {
 		log.Println(err.Error())
@@ -118,7 +118,7 @@ func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, e
 	// }
 	for cursor.Next(ctx) {
 		//Create a value into which the single document can be decoded
-		var elem model.OrderSchema
+		var elem models.OrderSchema
 		err := cursor.Decode(&elem)
 		if err != nil {
 			log.Println(err)
@@ -130,9 +130,9 @@ func GetUserOrders(ctx context.Context, username string) ([]model.OrderSchema, e
 	return ordersArray, nil
 }
 
-func GetUserBalance(ctx context.Context, username string) (balance *model.UserBalance, err error) {
+func GetUserBalance(ctx context.Context, username string) (balance *models.UserBalance, err error) {
 	log.Printf("fetching user balance from: %v\n", username)
-	var userDoc *model.UserSchema
+	var userDoc *models.UserSchema
 	err = UserCollection().FindOne(ctx, bson.M{"username": username}).Decode(&userDoc)
 	if err != nil {
 		log.Println(err.Error())
@@ -142,7 +142,7 @@ func GetUserBalance(ctx context.Context, username string) (balance *model.UserBa
 	return userDoc.Balance, nil
 }
 
-func CreateDepthLog(ctx context.Context, depthLog *model.DepthSchema) error {
+func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
 	log.Println("create depth log")
 	_, err := DepthCollection().InsertOne(ctx, depthLog)
 	if err != nil {
@@ -153,7 +153,7 @@ func CreateDepthLog(ctx context.Context, depthLog *model.DepthSchema) error {
 	return nil
 }
 
-func CreateOrder(ctx context.Context, order *model.OrderSchema) error {
+func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
 	log.Printf("create order: %v\n", order.OrderID)
 	order.ID = primitive.NewObjectID()
 	_, err := OrderCollection().InsertOne(ctx, order)
@@ -193,8 +193,8 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 
 	log.Printf("fulfill: %v\n", orderID)
-	var orderDoc *model.OrderSchema
-	var userDoc *model.UserSchema
+	var orderDoc *models.OrderSchema
+	var userDoc *models.UserSchema
 
 	//Finding order in database
 	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
@@ -248,8 +248,8 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
 func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
-	var orderDoc *model.OrderSchema
-	var userDoc *model.UserSchema
+	var orderDoc *models.OrderSchema
+	var userDoc *models.UserSchema
 
 	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
