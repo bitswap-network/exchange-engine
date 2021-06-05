@@ -38,10 +38,11 @@ func Setup() {
 }
 
 func UploadToS3(data []byte) {
+	log.Println("uploading... ", time.Now())
 	file := bytes.NewReader(data)
 	uploader := s3manager.NewUploader(Session.Session)
 	fileName := fmt.Sprintf("%s-%v.json", Session.Name, time.Now().UnixNano()/int64(time.Millisecond))
-	log.Println("uploading... ", time.Now())
+	
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(config.S3Config.Bucket),
 		Key:    aws.String(fileName),
