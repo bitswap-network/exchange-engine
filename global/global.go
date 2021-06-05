@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"v1.1-fulfiller/config"
@@ -20,8 +19,6 @@ type ExchangeRate struct {
 }
 
 var Exchange = &ExchangeRate{}
-
-var WaitGroup sync.WaitGroup
 
 func Setup() {
 	log.Println("global setup")

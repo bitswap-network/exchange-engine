@@ -216,7 +216,6 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 			}
 		} else {
 			log.Println("validation failed")
-			global.WaitGroup.Add(1)
 			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 			CancelOrder(headOrder.ID())
 		}
