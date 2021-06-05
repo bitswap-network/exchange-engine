@@ -99,11 +99,10 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 	}
 
 	quantityLeft = quantity
+	var toSanitize []*Order
 	if partial != nil {
-		Sanitize(append(done, partial))
-	} else {
-		Sanitize(done)
-	}
+		Sanitize(append(toSanitize,partial))
+	} 
 	return
 }
 
@@ -188,11 +187,10 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		}
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
+	var toSanitize []*Order
 	if partial != nil {
-		Sanitize(append(done, partial))
-	} else {
-		Sanitize(done)
-	}
+		Sanitize(append(toSanitize,partial))
+	} 
 	return
 }
 
