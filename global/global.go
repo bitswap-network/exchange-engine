@@ -35,13 +35,13 @@ func SetETHUSD() {
 	apiResp := new(models.EthPriceAPI)
 	err := getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERROR ETH USD: ",err)
 		return
 	}
 	log.Println(apiResp)
 	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
 	if err != nil {
-		log.Panicln(err)
+		log.Println("ERROR PARSING FLOAT ETH USD: ",err)
 		return
 	}
 	Exchange.LastUpdate = time.Now().UnixNano() / int64(time.Millisecond)
@@ -54,7 +54,11 @@ func getJson(url string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	json.NewDecoder(r.Body).Decode(target)
+	err = json.NewDecoder(r.Body).Decode(target)
 	defer r.Body.Close()
+	if err != nil {
+		return err
+	}
+	
 	return nil
 }
