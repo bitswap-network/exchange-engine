@@ -50,6 +50,7 @@ func UploadToS3(data []byte) {
 	})
 	if err != nil {
 		log.Panicln(err)
+		return
 	}
 	var backupTail string
 	if(config.IsTest){
@@ -64,8 +65,10 @@ func UploadToS3(data []byte) {
 	})
 	if err != nil {
 		log.Panicln(err)
+		return
 	}
 	log.Println("done uploading", time.Now())
+	return
 }
 
 func GetOrderbook() (data []byte) {
