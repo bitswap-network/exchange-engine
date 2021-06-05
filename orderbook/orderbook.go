@@ -22,7 +22,11 @@ type OrderBook struct {
 	bids *OrderSide
 }
 
-var OB = &OrderBook{}
+var OB = &OrderBook{
+		orders: map[string]*list.Element{},
+		bids:   NewOrderSide(),
+		asks:   NewOrderSide(),
+	}
 
 func Setup(blank bool) {
 	log.Println("orderbook setup")
@@ -36,9 +40,7 @@ func Setup(blank bool) {
 			}
 			log.Println(String())
 		}
-	} else {
-		OB = NewOrderBook()
-	}
+	} 
 	log.Printf("orderbook setup complete\n%v",String())
 }
 
