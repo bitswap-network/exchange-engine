@@ -36,7 +36,7 @@ func SetETHUSD() {
 	getJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp)
 	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
 	if err != nil {
-		log.Println(err.Error())
+		log.Panicln(err)
 	}
 	Exchange.LastUpdate = time.Now().UnixNano() / int64(time.Millisecond)
 	Exchange.ETHUSD = price
