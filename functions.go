@@ -8,16 +8,19 @@ import (
 
 	"v1.1-fulfiller/db"
 	"v1.1-fulfiller/orderbook"
+	"v1.1-fulfiller/s3"
 )
 
 func ProcessFull(orderlist []*orderbook.Order) {
 	for _, order := range orderlist {
 		go db.FulfillOrder(context.TODO(), order.ID(), 0)
+		go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	}
 }
 
 func ProcessPartial(order *orderbook.Order, partialQuantityProcessed float64) {
 	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0)
+	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 }
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {
