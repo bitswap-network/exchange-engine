@@ -81,7 +81,7 @@ func GetOrderbook() (data []byte) {
 	}
 
 	downloader := s3manager.NewDownloader(Session.Session)
-	log.Println("fetching orderbook")
+	log.Println("fetching orderbook: ",fmt.Sprintf("%s-%s.json", Session.Name, backupTail))
 
 	buf := aws.NewWriteAtBuffer([]byte{})
 	_, err := downloader.Download(buf,
