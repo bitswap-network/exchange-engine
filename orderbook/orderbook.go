@@ -197,13 +197,17 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
-	var userBalanceMap map[string]*models.UserBalance
+	userBalanceMap := make(map[string]*models.UserBalance)
 	var toSanitize []*Order
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
 		if userBalance, ok := userBalanceMap[headOrder.User()]; !ok {
-				userBalanceMap[headOrder.User()],_ = db.GetUserBalance(context.TODO(),headOrder.User())
+				uB ,err := db.GetUserBalance(context.TODO(),headOrder.User())
+				if err != nil {
+					log.Println(err)
+				}
+				userBalanceMap[headOrder.User()] = uB
 		} else {
 				userBalanceMap[headOrder.User()] = projectBalance(userBalance,headOrder)
 		}
@@ -227,7 +231,9 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 			// CancelOrder(headOrder.ID())
 		}
 	}
-	go Sanitize(toSanitize)
+	if len(toSanitize)>0 {
+		go Sanitize(toSanitize)
+	}
 	return
 }
 
