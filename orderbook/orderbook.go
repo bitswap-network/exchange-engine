@@ -216,7 +216,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
 	userBalanceMap := make(map[string]*models.UserBalance)
-	var toSanitize []*Order
+	// var toSanitize []*Order
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
@@ -243,15 +243,15 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 				done = append(done, CancelOrder(headOrder.ID()))
 			}
 		} else {
-			toSanitize = append(toSanitize, headOrder)
+			// toSanitize = append(toSanitize, headOrder)
 			log.Println("validation failed")
-			// go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
-			// CancelOrder(headOrder.ID())
+			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
+			CancelOrder(headOrder.ID())
 		}
 	}
-	if len(toSanitize) > 0 {
-		go Sanitize(toSanitize)
-	}
+	// if len(toSanitize) > 0 {
+	// 	go Sanitize(toSanitize)
+	// }
 	for username := range userBalanceMap {
 		go SanitizeUsersOrders(username)
 	}
