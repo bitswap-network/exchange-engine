@@ -62,7 +62,7 @@ type PriceLevel struct {
 //      side     - what do you want to do (ob.Sell or ob.Buy)
 //      quantity - how much quantity you want to sell or buy
 //      * to create new decimal number you should use decimal.New() func
-//        read more at https://github.com/shopspring/decimal
+//     
 // Return:
 //      error        - not nil if price is less or equal 0
 //      done         - not nil if your market order produces ends of anoter orders, this order will add to
@@ -113,7 +113,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 //      quantity - how much quantity you want to sell or buy
 //      price    - no more expensive (or cheaper) this price
 //      * to create new decimal number you should use decimal.New() func
-//        read more at https://github.com/shopspring/decimal
+//        
 // Return:
 //      error   - not nil if quantity (or price) is less or equal 0. Or if order with given ID is exists
 //      done    - not nil if your order produces ends of anoter order, this order will add to
@@ -197,11 +197,17 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
-
+	var userBalanceMap map[string]*models.UserBalance
+	var toSanitize []*Order
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		if validateBalance(headOrder) {
+		if userBalance, ok := userBalanceMap[headOrder.User()]; !ok {
+				userBalanceMap[headOrder.User()],_ = db.GetUserBalance(context.TODO(),headOrder.User())
+		} else {
+				userBalanceMap[headOrder.User()] = projectBalance(userBalance,headOrder)
+		}
+		if postProjectValidation(userBalanceMap[headOrder.User()],headOrder) {
 			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
@@ -215,27 +221,49 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 				done = append(done, CancelOrder(headOrder.ID()))
 			}
 		} else {
+			toSanitize = append(toSanitize,headOrder)
 			log.Println("validation failed")
-			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
-			CancelOrder(headOrder.ID())
+			// go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
+			// CancelOrder(headOrder.ID())
 		}
 	}
+	go Sanitize(toSanitize)
 	return
 }
 
 //change to only validate users associated with orders
 func Sanitize(orders []*Order) {
 	for _, order := range orders {
-		go func(order *Order) {
 			log.Printf("Validating: %s\n", order.ID())
 			if !validateBalance(order) {
 				log.Printf("Validation failed for: %s\n", order.ID())
 				go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
 				CancelOrder(order.ID())
 			}
-		}(order)
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
+}
+
+func postProjectValidation(balance *models.UserBalance, order *Order) bool {
+	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
+	totalQuantity, _ := (order.Quantity()).Float64()
+	if order.Side() == Buy {
+		return totalPrice/global.Exchange.ETHUSD <= balance.Ether
+	} else {
+		return totalQuantity <= balance.Bitclout
+	}
+}
+
+func projectBalance(balance *models.UserBalance, order *Order) *models.UserBalance {
+	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
+	totalQuantity, _ := (order.Quantity()).Float64()
+	if order.Side() == Buy {
+		balance.Ether = balance.Ether-(totalPrice/global.Exchange.ETHUSD)
+		return balance
+	} else {
+		balance.Bitclout = balance.Bitclout - totalQuantity
+		return balance
+	}
 }
 
 // internal user balance
