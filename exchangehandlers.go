@@ -83,26 +83,26 @@ func MarketOrderHandler(c *gin.Context) {
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
-	error = db.UpdateOrderPrice(c.Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity)
+	// error = db.UpdateOrderPrice(c.Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	// If any orders have been fulfilled, process them
 	if len(ordersDone) > 0 {
-		go ProcessFull(ordersDone)
+		go ProcessFull(ordersDone,order.OrderPrice)
 	}
 	// If any orders have been partially fulfilled, process them
 	if partialDone != nil {
-		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat,order.OrderPrice)
 	}
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
+		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat,totalPriceFloat/order.OrderQuantity)
 	} else {
 		//add checks & validators
-		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat)
+		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat,totalPriceFloat/order.OrderQuantity)
 	}
 	
 	go orderbook.SanitizeUsersOrders(order.Username)
@@ -153,10 +153,10 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 	if ordersDone != nil {
-		go ProcessFull(ordersDone)
+		go ProcessFull(ordersDone,order.OrderPrice)
 	}
 	if partialDone != nil {
-		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat,order.OrderPrice)
 	}
 	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())

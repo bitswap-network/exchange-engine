@@ -189,7 +189,7 @@ func CancelCompleteOrder(ctx context.Context, orderID string, errorString string
 	return nil
 }
 
-func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
+func FulfillOrder(ctx context.Context, orderID string, cost float64,execPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 
 	log.Printf("fulfill: %v\n", orderID)
@@ -232,7 +232,7 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
 		return errors.New("Insufficient Balance")
 	}
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
+	update := bson.M{"$set": bson.M{"execPrice":execPrice,"orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64) error {
 	return nil
 }
 
-func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64) error {
+func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, cost float64, execPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v - %v\n", orderID, partialQuantityProcessed, cost)
 	var orderDoc *models.OrderSchema
@@ -299,7 +299,7 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 		log.Println(err.Error())
 		return err
 	}
-	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
+	update = bson.M{"$set": bson.M{"execPrice":execPrice,"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		log.Println(err.Error())
