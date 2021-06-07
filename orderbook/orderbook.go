@@ -36,10 +36,10 @@ func Setup(blank bool) {
 			}
 			log.Println(String())
 		}
-	} else{
+	} else {
 		OB = NewOrderBook()
 	}
-	log.Printf("orderbook setup complete\n%v",String())
+	log.Printf("orderbook setup complete\n%v", String())
 }
 
 // NewOrderBook creates Orderbook object
@@ -62,7 +62,7 @@ type PriceLevel struct {
 //      side     - what do you want to do (ob.Sell or ob.Buy)
 //      quantity - how much quantity you want to sell or buy
 //      * to create new decimal number you should use decimal.New() func
-//     
+//
 // Return:
 //      error        - not nil if price is less or equal 0
 //      done         - not nil if your market order produces ends of anoter orders, this order will add to
@@ -99,10 +99,19 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 	}
 
 	quantityLeft = quantity
-	var toSanitize []*Order
+	toSanitize := done
+	userBalanceMap := make(map[string]bool)
 	if partial != nil {
-		Sanitize(append(toSanitize,partial))
-	} 
+		toSanitize = append(toSanitize, partial)
+	}
+	for _, order := range toSanitize {
+		if !userBalanceMap[order.User()] {
+			userBalanceMap[order.User()] = true
+		}
+	}
+	for username := range userBalanceMap {
+		go SanitizeUsersOrders(username)
+	}
 	return
 }
 
@@ -113,7 +122,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 //      quantity - how much quantity you want to sell or buy
 //      price    - no more expensive (or cheaper) this price
 //      * to create new decimal number you should use decimal.New() func
-//        
+//
 // Return:
 //      error   - not nil if quantity (or price) is less or equal 0. Or if order with given ID is exists
 //      done    - not nil if your order produces ends of anoter order, this order will add to
@@ -187,10 +196,19 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		}
 		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
 	}
-	var toSanitize []*Order
+	toSanitize := done
+	userBalanceMap := make(map[string]bool)
 	if partial != nil {
-		Sanitize(append(toSanitize,partial))
-	} 
+		toSanitize = append(toSanitize, partial)
+	}
+	for _, order := range toSanitize {
+		if !userBalanceMap[order.User()] {
+			userBalanceMap[order.User()] = true
+		}
+	}
+	for username := range userBalanceMap {
+		go SanitizeUsersOrders(username)
+	}
 	return
 }
 
@@ -203,15 +221,15 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
 		if userBalance, ok := userBalanceMap[headOrder.User()]; !ok {
-				uB ,err := db.GetUserBalance(context.TODO(),headOrder.User())
-				if err != nil {
-					log.Println(err)
-				}
-				userBalanceMap[headOrder.User()] = uB
+			uB, err := db.GetUserBalance(context.TODO(), headOrder.User())
+			if err != nil {
+				log.Println(err)
+			}
+			userBalanceMap[headOrder.User()] = uB
 		} else {
-				userBalanceMap[headOrder.User()] = projectBalance(userBalance,headOrder)
+			userBalanceMap[headOrder.User()] = projectBalance(userBalance, headOrder)
 		}
-		if postProjectValidation(userBalanceMap[headOrder.User()],headOrder) {
+		if postProjectValidation(userBalanceMap[headOrder.User()], headOrder) {
 			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
@@ -225,18 +243,18 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 				done = append(done, CancelOrder(headOrder.ID()))
 			}
 		} else {
-			toSanitize = append(toSanitize,headOrder)
+			toSanitize = append(toSanitize, headOrder)
 			log.Println("validation failed")
 			// go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 			// CancelOrder(headOrder.ID())
 		}
 	}
-	if len(toSanitize)>0 {
+	if len(toSanitize) > 0 {
 		go Sanitize(toSanitize)
 	}
 	for username := range userBalanceMap {
-    go SanitizeUsersOrders(username)
-  }
+		go SanitizeUsersOrders(username)
+	}
 	return
 }
 
@@ -258,15 +276,14 @@ func SanitizeUsersOrders(username string) {
 	return
 }
 
-//change to only validate users associated with orders
 func Sanitize(orders []*Order) {
 	for _, order := range orders {
-			log.Printf("Validating: %s\n", order.ID())
-			if !validateBalance(order) {
-				log.Printf("Validation failed for: %s\n", order.ID())
-				go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
-				CancelOrder(order.ID())
-			}
+		log.Printf("Validating: %s\n", order.ID())
+		if !validateBalance(order) {
+			log.Printf("Validation failed for: %s\n", order.ID())
+			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
+			CancelOrder(order.ID())
+		}
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
 }
@@ -285,7 +302,7 @@ func projectBalance(balance *models.UserBalance, order *Order) *models.UserBalan
 	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
 	totalQuantity, _ := (order.Quantity()).Float64()
 	if order.Side() == Buy {
-		balance.Ether = balance.Ether-(totalPrice/global.Exchange.ETHUSD)
+		balance.Ether = balance.Ether - (totalPrice / global.Exchange.ETHUSD)
 		return balance
 	} else {
 		balance.Bitclout = balance.Bitclout - totalQuantity
