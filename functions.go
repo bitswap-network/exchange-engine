@@ -10,15 +10,15 @@ import (
 	"v1.1-fulfiller/orderbook"
 )
 
-func ProcessFull(orderlist []*orderbook.Order,execPrice float64) {
+func ProcessFull(orderlist []*orderbook.Order, execPrice float64) {
 	for _, order := range orderlist {
-		go db.FulfillOrder(context.TODO(), order.ID(), 0,execPrice)
+		go db.FulfillOrder(context.TODO(), order.ID(), 0, execPrice)
 		// go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	}
 }
 
-func ProcessPartial(order *orderbook.Order, partialQuantityProcessed float64,execPrice float64) {
-	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0,execPrice)
+func ProcessPartial(order *orderbook.Order, partialQuantityProcessed float64, execPrice float64) {
+	go db.PartialFulfillOrder(context.TODO(), order.ID(), partialQuantityProcessed, 0, execPrice)
 	// go s3.UploadToS3(orderbook.GetOrderbookBytes())
 }
 

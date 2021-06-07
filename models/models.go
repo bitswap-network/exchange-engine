@@ -41,7 +41,7 @@ type OrderSchema struct {
 	OrderType              string             `json:"orderType" bson:"orderType" binding:"-"`
 	OrderQuantity          float64            `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
 	OrderPrice             float64            `json:"orderPrice,omitempty" bson:"orderPrice,omitempty" binding:"-"`
-	ExecPrice 	float64 `json:"execPrice,omitempty" bson:"execPrice,omitempty" binding:"-"`
+	ExecPrice              float64            `json:"execPrice,omitempty" bson:"execPrice,omitempty" binding:"-"`
 	OrderQuantityProcessed float64            `json:"orderQuantityProcessed" bson:"orderQuantityProcessed" binding:"-"`
 	Complete               bool               `json:"complete" bson:"complete" binding:"-"`
 	Error                  string             `json:"error" bson:"error" binding:"-"`
