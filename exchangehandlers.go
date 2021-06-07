@@ -104,6 +104,8 @@ func MarketOrderHandler(c *gin.Context) {
 		//add checks & validators
 		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat)
 	}
+	
+	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
@@ -156,6 +158,7 @@ func LimitOrderHandler(c *gin.Context) {
 	if partialDone != nil {
 		go ProcessPartial(partialDone, partialQuantityProcessedFloat)
 	}
+	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
