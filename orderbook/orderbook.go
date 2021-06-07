@@ -234,6 +234,27 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 	if len(toSanitize)>0 {
 		go Sanitize(toSanitize)
 	}
+	for username := range userBalanceMap {
+    go SanitizeUsersOrders(username)
+  }
+	return
+}
+
+func SanitizeUsersOrders(username string) {
+	orders, err := db.GetUserOrders(context.TODO(), username)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	var orderList []*Order
+	for _, order := range orders {
+		orderFromState := GetOrder(order.OrderID)
+		log.Println(orderFromState)
+		if orderFromState != nil {
+			orderList = append(orderList, orderFromState)
+		}
+	}
+	go Sanitize(orderList)
 	return
 }
 
