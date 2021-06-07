@@ -180,6 +180,7 @@ func CancelOrderHandler(c *gin.Context) {
 	}
 
 	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
+	go orderbook.SanitizeUsersOrders(cancelledOrderId.User())
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
 	return
