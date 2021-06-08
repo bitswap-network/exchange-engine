@@ -247,6 +247,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 			CancelOrder(headOrder.ID())
 		}
 	}
+	log.Println(userBalanceMap)
 	for username := range userBalanceMap {
 		go SanitizeUsersOrders(username)
 	}
