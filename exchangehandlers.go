@@ -83,6 +83,7 @@ func MarketOrderHandler(c *gin.Context) {
 	}
 	// Attempt to Process the Market Order
 	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
+	log.Println(quantityLeft, totalPrice)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -141,6 +142,7 @@ func LimitOrderHandler(c *gin.Context) {
 	quantityLeft, totalPrice, error := orderbook.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
+	log.Println(quantityLeft, totalPrice)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
