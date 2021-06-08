@@ -41,7 +41,6 @@ func SetETHUSD() {
 	}
 	Exchange.LastUpdate = time.Now().UnixNano() / int64(time.Millisecond)
 	Exchange.ETHUSD = price
-	log.Printf("Current ETHUSD price: %f", Exchange.ETHUSD)
 	return
 }
 func getJson(url string, target interface{}) error {
