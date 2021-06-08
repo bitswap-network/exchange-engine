@@ -97,21 +97,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 		// partialQuantityProcessed = partialProcessed
 		quantity = quantityLeft
 	}
-
 	quantityLeft = quantity
-	// toSanitize := done
-	// userBalanceMap := make(map[string]bool)
-	// if partial != nil {
-	// 	toSanitize = append(toSanitize, partial)
-	// }
-	// for _, order := range toSanitize {
-	// 	if !userBalanceMap[order.User()] {
-	// 		userBalanceMap[order.User()] = true
-	// 	}
-	// }
-	// for username := range userBalanceMap {
-	// 	go SanitizeUsersOrders(username)
-	// }
 	return
 }
 
@@ -166,106 +152,50 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 	bestPrice := iter()
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		quantityToTrade, totalPrice = processQueue(bestPrice, quantityToTrade)
-		// done = append(done, ordersDone...)
-		// partial = partialDone
-		// partialQuantityProcessed = partialQty
+		quantityLeft, totalPrice = processQueue(bestPrice, quantityToTrade)
+		quantityToTrade = quantityLeft
 		bestPrice = iter()
 	}
 
 	if quantityToTrade.Sign() > 0 {
-		o := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC())
-		// if len(done) > 0 {
-		// 	partialQuantityProcessed = quantity.Sub(quantityToTrade)
-		// 	partial = o
-		// }
+		//there is still quantity left in this order, quantityToTrade may be different than the original quantity - partial fulfill
+		o, _ := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC(), true)
+
 		OB.orders[orderID] = sideToAdd.Append(o)
 	}
-	//  else {
-	// 	totalQuantity := decimal.Zero
-	// 	totalPrice := decimal.Zero
 
-	// 	for _, order := range done {
-	// 		totalQuantity = totalQuantity.Add(order.Quantity())
-	// 		totalPrice = totalPrice.Add(order.Price().Mul(order.Quantity()))
-	// 	}
-
-	// 	if partialQuantityProcessed.Sign() > 0 {
-	// 		totalQuantity = totalQuantity.Add(partialQuantityProcessed)
-	// 		totalPrice = totalPrice.Add(partial.Price().Mul(partialQuantityProcessed))
-	// 	}
-	// 	done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
-	// }
-	// toSanitize := done
-	// userBalanceMap := make(map[string]bool)
-	// if partial != nil {
-	// 	toSanitize = append(toSanitize, partial)
-	// }
-	// for _, order := range toSanitize {
-	// 	if !userBalanceMap[order.User()] {
-	// 		userBalanceMap[order.User()] = true
-	// 	}
-	// }
-	// for username := range userBalanceMap {
-	// 	go SanitizeUsersOrders(username)
-	// }
 	return
 }
 
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
-	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
-	// userBalanceMap := make(map[string]*models.UserBalance)
-	// var toSanitize []*Order
+
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		// if _, ok := userBalanceMap[headOrder.User()]; !ok {
-		// 	uB, err := db.GetUserBalance(context.TODO(), headOrder.User())
-		// 	if err != nil {
-		// 		log.Println(err)
-		// 	}
-		// 	userBalanceMap[headOrder.User()] = uB
-		// }
 		if validateBalance(headOrder) {
-			// userBalanceMap[headOrder.User()] = projectBalance(userBalanceMap[headOrder.User()], headOrder)
 			log.Println("validation passed")
+			//partial order
+			deltaTotalPrice := headOrder.Quantity().Mul(headOrder.Price())
 			if quantityLeft.LessThan(headOrder.Quantity()) {
-				partial := NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
-				partialQuantityProcessed := quantityLeft
-				partialQuantityFloat, _ := partialQuantityProcessed.Float64()
-				totalPrice = totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
+				// create a new order with the remaining quantity.
+				executionPrice := quantityLeft.Mul(headOrder.Price())
+				executionPriceFloat, _ := executionPrice.Float64()
+				totalPrice = totalPrice.Add(executionPrice)
+				partial := PartialOrder(headOrder.ID(), quantityLeft, executionPriceFloat)
+
 				orderQueue.Update(headOrderEl, partial)
-				orderExecPriceFloat, _ := headOrder.Price().Float64()
 				quantityLeft = decimal.Zero
-				err := db.PartialFulfillOrder(context.TODO(), partial.ID(), partialQuantityFloat, 0, orderExecPriceFloat)
-				if err != nil {
-					db.CancelCompleteOrder(context.TODO(), partial.ID(), err.Error())
-				}
 			} else {
+				deltaPriceFloat, _ := deltaTotalPrice.Float64()
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
-				totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
-				//Fully filled order is cancelled (removed from the orderbook) and added to done array
-				doneOrder := CancelOrder(headOrder.ID())
-				if doneOrder != nil {
-					priceFloat, _ := headOrder.Price().Float64()
-					//If order is done, we update the database to fulfill the order
-					err := db.FulfillOrder(context.TODO(), headOrder.ID(), 0, priceFloat)
-					if err != nil {
-						db.CancelCompleteOrder(context.TODO(), doneOrder.ID(), err.Error())
-					}
-				}
+				totalPrice = totalPrice.Add(deltaTotalPrice)
+				CompleteOrder(headOrder.ID(), deltaPriceFloat)
 			}
 		} else {
-			log.Println("validation failed")
 			CancelOrder(headOrder.ID())
-			db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 		}
 	}
-	// log.Println(userBalanceMap)
-	// for username := range userBalanceMap {
-	// 	go SanitizeUsersOrders(username)
-	// }
 	return
 }
 
@@ -297,27 +227,6 @@ func Sanitize(orders []*Order) {
 		}
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
-}
-
-func postProjectValidation(balance *models.UserBalance, order *Order) bool {
-	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
-	totalQuantity, _ := (order.Quantity()).Float64()
-	if order.Side() == Buy {
-		return totalPrice/global.Exchange.ETHUSD <= balance.Ether
-	} else {
-		return totalQuantity <= balance.Bitclout
-	}
-}
-
-func projectBalance(balance *models.UserBalance, order *Order) *models.UserBalance {
-	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
-	totalQuantity, _ := (order.Quantity()).Float64()
-	if order.Side() == Buy {
-		balance.Ether = balance.Ether - (totalPrice / global.Exchange.ETHUSD)
-	} else {
-		balance.Bitclout = balance.Bitclout - totalQuantity
-	}
-	return balance
 }
 
 // internal user balance
@@ -353,7 +262,7 @@ func CancelOrder(orderID string) *Order {
 	if !ok {
 		return nil
 	}
-
+	db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled.")
 	delete(OB.orders, orderID)
 
 	if e.Value.(*Order).Side() == Buy {
@@ -361,6 +270,43 @@ func CancelOrder(orderID string) *Order {
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
 	return OB.asks.Remove(e)
+}
+
+func CompleteOrder(orderID string, totalPrice float64) *Order {
+	e, ok := OB.orders[orderID]
+	if !ok {
+		return nil
+	}
+	err := db.CompleteLimitOrder(context.TODO(), orderID, totalPrice)
+	if err != nil {
+		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
+	}
+	delete(OB.orders, orderID)
+
+	if e.Value.(*Order).Side() == Buy {
+		return OB.bids.Remove(e)
+	}
+	go s3.UploadToS3(GetOrderbookBytes())
+	return OB.asks.Remove(e)
+}
+
+func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice float64) *Order {
+	e, ok := OB.orders[orderID]
+	if !ok {
+		return nil
+	}
+	order := e.Value.(*Order)
+	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now(), true)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	quantityProcessedFloat, _ := quantityProcessed.Float64()
+	err = db.PartialLimitOrder(context.TODO(), orderID, quantityProcessedFloat, totalPrice)
+	if err != nil {
+		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
+		CancelOrder(orderID)
+	}
+	return partialOrder
 }
 
 // CalculateMarketPrice returns total market price for requested quantity
@@ -478,31 +424,6 @@ func DepthMarshalJSON() (*models.DepthSchema, error) {
 		Bids:      bids,
 	}, nil
 
-}
-
-func UnmarshalJSONFromDB(data []byte) error {
-	obj := struct {
-		Asks *OrderSide `json:"asks"`
-		Bids *OrderSide `json:"bids"`
-	}{}
-
-	if err := json.Unmarshal(data, &obj); err != nil {
-		return err
-	}
-
-	OB.asks = obj.Asks
-	OB.bids = obj.Bids
-	OB.orders = map[string]*list.Element{}
-
-	for _, order := range OB.asks.Orders() {
-		OB.orders[order.Value.(*Order).ID()] = order
-	}
-
-	for _, order := range OB.bids.Orders() {
-		OB.orders[order.Value.(*Order).ID()] = order
-	}
-
-	return nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface
