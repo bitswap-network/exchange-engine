@@ -90,19 +90,19 @@ func MarketOrderHandler(c *gin.Context) {
 	}
 	// If any orders have been fulfilled, process them
 	if len(ordersDone) > 0 {
-		ProcessFull(ordersDone, order.OrderPrice)
+		go ProcessFull(ordersDone, order.OrderPrice)
 	}
 	// If any orders have been partially fulfilled, process them
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
 	}
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
+		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
 	} else {
 		//add checks & validators
-		db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
+		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
 	}
 
 	go orderbook.SanitizeUsersOrders(order.Username)
@@ -153,10 +153,10 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 	if ordersDone != nil {
-		ProcessFull(ordersDone, order.OrderPrice)
+		go ProcessFull(ordersDone, order.OrderPrice)
 	}
 	if partialDone != nil {
-		ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
+		go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
 	}
 	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
