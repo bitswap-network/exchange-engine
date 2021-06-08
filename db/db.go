@@ -234,7 +234,7 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, execPrice f
 		}
 	}
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
-		go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
+		// go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
 		return errors.New("Insufficient Balance")
 	} else {
 		update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
@@ -297,7 +297,7 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
 		log.Println("Insufficient Balance")
-		go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
+		// go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
 		return errors.New("Insufficient Balance")
 	} else {
 		update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": partialQuantityProcessed}}
