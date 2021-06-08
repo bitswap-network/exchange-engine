@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"v1.1-fulfiller/config"
@@ -152,12 +153,13 @@ func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
 }
 
 func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) error {
-	log.Printf("create order: %v\n", order.OrderID)
-	opts := options.Update().SetUpsert(upsert)
+	log.Printf("updating order: %v upsert: %v\n", order.OrderID, upsert)
+
 	// order.ID = primitive.NewObjectID()
 	filter := bson.M{"orderID": order.OrderID}
 	var update bson.M
-	if upsert {
+
+	if !upsert {
 		update = bson.M{"$set": bson.M{
 			"orderID":                order.OrderID,
 			"orderSide":              order.OrderSide,
@@ -166,6 +168,7 @@ func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) er
 		}}
 	} else {
 		update = bson.M{"$set": bson.M{
+			"_id":           primitive.NewObjectID(),
 			"orderID":       order.OrderID,
 			"orderSide":     order.OrderSide,
 			"orderQuantity": order.OrderQuantity,
@@ -173,7 +176,7 @@ func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) er
 		}}
 	}
 
-	_, err := OrderCollection().UpdateOne(ctx, filter, update, opts)
+	_, err := OrderCollection().UpdateOne(ctx, filter, update)
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
