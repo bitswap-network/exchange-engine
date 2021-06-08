@@ -76,7 +76,7 @@ func MarketOrderHandler(c *gin.Context) {
 	}
 
 	// Attempt to create an order in the database
-	err := db.UpdateOrder(c.Request.Context(), &order, false)
+	err := db.CreateOrder(c.Request.Context(), &order)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -124,7 +124,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Complete = false
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
-	error := db.UpdateOrder(c.Request.Context(), &order, false)
+	error := db.CreateOrder(c.Request.Context(), &order)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

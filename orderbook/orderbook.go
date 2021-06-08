@@ -159,7 +159,7 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 	if quantityToTrade.Sign() > 0 {
 		//there is still quantity left in this order, quantityToTrade may be different than the original quantity - partial fulfill
-		o, _ := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC(), false)
+		o, _ := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC())
 
 		OB.orders[orderID] = sideToAdd.Append(o)
 	}
@@ -296,7 +296,7 @@ func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice 
 		return nil
 	}
 	order := e.Value.(*Order)
-	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now(), false)
+	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now())
 	if err != nil {
 		log.Println(err.Error())
 	}

@@ -23,11 +23,10 @@ type Order struct {
 }
 
 // NewOrder creates new constant object Order
-func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timestamp time.Time, upsert bool) (*Order, error) {
+func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timestamp time.Time) (*Order, error) {
 	quantFloat, _ := quantity.Float64()
 	priceFloat, _ := price.Float64()
 	var dbOrder *models.OrderSchema
-	if upsert {
 		dbOrder = &models.OrderSchema{
 			OrderID:                orderID,
 			OrderSide:              side.String(),
@@ -35,17 +34,7 @@ func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timest
 			OrderPrice:             priceFloat,
 			Created:                timestamp,
 		}
-
-	} else {
-		dbOrder = &models.OrderSchema{
-			OrderID:       orderID,
-			OrderSide:     side.String(),
-			OrderQuantity: quantFloat,
-			OrderPrice:    priceFloat,
-			Created:       timestamp,
-		}
-	}
-	err := db.UpdateOrder(context.TODO(), dbOrder, upsert)
+	err := db.UpdateOrder(context.TODO(), dbOrder)
 	if err != nil {
 		log.Fatalln(err.Error())
 		return nil, err
