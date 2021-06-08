@@ -210,14 +210,14 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, execPrice f
 	//update ether USD price var
 	if orderDoc.OrderType == "limit" {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutChange = orderDoc.OrderQuantity - orderDoc.OrderQuantity*global.Exchange.FEE
+			bitcloutChange = orderDoc.OrderQuantity - (orderDoc.OrderQuantity * global.Exchange.FEE)
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = -(orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
+			etherChange = -(execPrice * orderDoc.OrderQuantity / ETHUSD)
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
 			bitcloutChange = -orderDoc.OrderQuantity
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = ((orderDoc.OrderPrice * orderDoc.OrderQuantity) - (orderDoc.OrderPrice * orderDoc.OrderQuantity * global.Exchange.FEE)) / ETHUSD
+			etherChange = ((execPrice * orderDoc.OrderQuantity) - (execPrice * orderDoc.OrderQuantity * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	} else {
@@ -273,12 +273,12 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 		if orderDoc.OrderSide == "buy" {
 			bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = -(orderDoc.OrderPrice * partialQuantityProcessed) / ETHUSD
+			etherChange = -(execPrice * partialQuantityProcessed) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
 			bitcloutChange = -partialQuantityProcessed
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = ((orderDoc.OrderPrice * partialQuantityProcessed) - (orderDoc.OrderPrice * partialQuantityProcessed * global.Exchange.FEE)) / ETHUSD
+			etherChange = ((execPrice * partialQuantityProcessed) - (execPrice * partialQuantityProcessed * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	} else {
