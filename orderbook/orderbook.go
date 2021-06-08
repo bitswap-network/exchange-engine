@@ -226,7 +226,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 				log.Println(err)
 			}
 			userBalanceMap[headOrder.User()] = uB
-		} 
+		}
 		if postProjectValidation(userBalanceMap[headOrder.User()], headOrder) {
 			userBalanceMap[headOrder.User()] = projectBalance(userBalanceMap[headOrder.User()], headOrder)
 			log.Println("validation passed")
@@ -299,7 +299,7 @@ func projectBalance(balance *models.UserBalance, order *Order) *models.UserBalan
 	if order.Side() == Buy {
 		balance.Ether = balance.Ether - (totalPrice / global.Exchange.ETHUSD)
 	} else {
-		balance.Bitclout = balance.Bitclout - totalQuantity	
+		balance.Bitclout = balance.Bitclout - totalQuantity
 	}
 	return balance
 }
