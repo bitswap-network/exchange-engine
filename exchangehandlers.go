@@ -99,7 +99,7 @@ func MarketOrderHandler(c *gin.Context) {
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
+		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
 	} else {
 		//add checks & validators
 		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
