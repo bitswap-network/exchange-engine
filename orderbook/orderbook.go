@@ -220,16 +220,15 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		if userBalance, ok := userBalanceMap[headOrder.User()]; !ok {
+		if _, ok := userBalanceMap[headOrder.User()]; !ok {
 			uB, err := db.GetUserBalance(context.TODO(), headOrder.User())
 			if err != nil {
 				log.Println(err)
 			}
 			userBalanceMap[headOrder.User()] = uB
-		} else {
-			userBalanceMap[headOrder.User()] = projectBalance(userBalance, headOrder)
-		}
+		} 
 		if postProjectValidation(userBalanceMap[headOrder.User()], headOrder) {
+			userBalanceMap[headOrder.User()] = projectBalance(userBalanceMap[headOrder.User()], headOrder)
 			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
@@ -243,15 +242,11 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done
 				done = append(done, CancelOrder(headOrder.ID()))
 			}
 		} else {
-			// toSanitize = append(toSanitize, headOrder)
 			log.Println("validation failed")
 			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 			CancelOrder(headOrder.ID())
 		}
 	}
-	// if len(toSanitize) > 0 {
-	// 	go Sanitize(toSanitize)
-	// }
 	for username := range userBalanceMap {
 		go SanitizeUsersOrders(username)
 	}
@@ -303,11 +298,10 @@ func projectBalance(balance *models.UserBalance, order *Order) *models.UserBalan
 	totalQuantity, _ := (order.Quantity()).Float64()
 	if order.Side() == Buy {
 		balance.Ether = balance.Ether - (totalPrice / global.Exchange.ETHUSD)
-		return balance
 	} else {
-		balance.Bitclout = balance.Bitclout - totalQuantity
-		return balance
+		balance.Bitclout = balance.Bitclout - totalQuantity	
 	}
+	return balance
 }
 
 // internal user balance
