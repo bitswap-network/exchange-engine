@@ -154,11 +154,9 @@ func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
 
 func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) error {
 	log.Printf("updating order: %v upsert: %v\n", order.OrderID, upsert)
-
-	// order.ID = primitive.NewObjectID()
 	filter := bson.M{"orderID": order.OrderID}
 	var update bson.M
-
+	var err error
 	if !upsert {
 		update = bson.M{"$set": bson.M{
 			"orderID":                order.OrderID,
@@ -166,22 +164,13 @@ func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) er
 			"orderQuantityProcessed": order.OrderQuantity,
 			"orderPrice":             order.OrderPrice,
 		}}
+		_, err = OrderCollection().UpdateOne(ctx, filter, update)
 	} else {
-		update = bson.M{"$set": bson.M{
-			"_id":           primitive.NewObjectID(),
-			"orderID":       order.OrderID,
-			"orderSide":     order.OrderSide,
-			"orderQuantity": order.OrderQuantity,
-			"orderPrice":    order.OrderPrice,
-		}}
-	}
-	if upsert {
-		_, err := OrderCollection().UpdateOne(ctx, filter, update)
-	} else {
-		_, err := OrderCollection().InsertOne(ctx, filter, update)
+		order.ID = primitive.NewObjectID()
+		_, err = OrderCollection().InsertOne(ctx, order)
 	}
 	if err != nil {
-		log.Printf("Could not create order: %v", err)
+		log.Println(err.Error())
 		return err
 	}
 	log.Println("done creating order")
