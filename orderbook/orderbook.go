@@ -151,6 +151,7 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 	}
 
 	bestPrice := iter()
+	log.Printf("Quantity To Trade: %s, side To Process length: %d\n", quantityToTrade.String(), sideToProcess.Len())
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
 		quantityLeft, totalPrice = processQueue(bestPrice, quantityToTrade)
 		log.Println(quantityLeft, totalPrice)
@@ -170,14 +171,15 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	quantityLeft = quantityToTrade
-
+	log.Printf("Proc q: %s\n", quantityToTrade.String())
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
+		log.Printf("Proc q head: %s\n", headOrder.ID())
 		if validateBalance(headOrder) {
 			log.Println("validation passed")
 			//partial order
-			deltaTotalPrice := headOrder.Quantity().Mul(headOrder.Price())
+
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				// create a new order with the remaining quantity.
 				executionPrice := quantityLeft.Mul(headOrder.Price())
@@ -188,6 +190,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				orderQueue.Update(headOrderEl, partial)
 				quantityLeft = decimal.Zero
 			} else {
+				deltaTotalPrice := headOrder.Quantity().Mul(headOrder.Price())
 				deltaPriceFloat, _ := deltaTotalPrice.Float64()
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
 				totalPrice = totalPrice.Add(deltaTotalPrice)
