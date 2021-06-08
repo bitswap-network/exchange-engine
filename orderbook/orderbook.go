@@ -153,6 +153,7 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 	bestPrice := iter()
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
 		quantityLeft, totalPrice = processQueue(bestPrice, quantityToTrade)
+		log.Println(quantityLeft, totalPrice)
 		quantityToTrade = quantityLeft
 		bestPrice = iter()
 	}
