@@ -212,36 +212,43 @@ func FulfillOrder(ctx context.Context, orderID string, cost float64, execPrice f
 		if orderDoc.OrderSide == "buy" {
 			bitcloutChange = orderDoc.OrderQuantity - orderDoc.OrderQuantity*global.Exchange.FEE
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
-			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
+			etherChange = -(orderDoc.OrderPrice * orderDoc.OrderQuantity / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
-			bitcloutChange = orderDoc.OrderQuantity
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
+			bitcloutChange = -orderDoc.OrderQuantity
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
 			etherChange = ((orderDoc.OrderPrice * orderDoc.OrderQuantity) - (orderDoc.OrderPrice * orderDoc.OrderQuantity * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	} else {
 		if orderDoc.OrderSide == "buy" {
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + orderDoc.OrderQuantity
-			etherBalanceUpdated = userDoc.Balance.Ether - (cost / ETHUSD)
+			bitcloutChange = orderDoc.OrderQuantity
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
+			etherChange = -(cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - orderDoc.OrderQuantity
-			etherBalanceUpdated = userDoc.Balance.Ether + (cost / ETHUSD)
+			bitcloutChange = -orderDoc.OrderQuantity
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
+			etherChange = (cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
 	}
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
+		go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
 		return errors.New("Insufficient Balance")
+	} else {
+		update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
+		_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+		if err != nil {
+			return err
+		}
+		update = bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
+		_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+		if err != nil {
+			return err
+		}
 	}
-	update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": orderDoc.OrderQuantity, "complete": true, "completeTime": time.Now()}}
-	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
-	if err != nil {
-		return err
-	}
-	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
-	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -266,11 +273,11 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 		if orderDoc.OrderSide == "buy" {
 			bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (orderDoc.OrderPrice * partialQuantityProcessed) / ETHUSD
-			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
+			etherChange = -(orderDoc.OrderPrice * partialQuantityProcessed) / ETHUSD
+			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
-			bitcloutChange = partialQuantityProcessed
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
+			bitcloutChange = -partialQuantityProcessed
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
 			etherChange = ((orderDoc.OrderPrice * partialQuantityProcessed) - (orderDoc.OrderPrice * partialQuantityProcessed * global.Exchange.FEE)) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
@@ -278,11 +285,11 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 		if orderDoc.OrderSide == "buy" {
 			bitcloutChange = partialQuantityProcessed * global.Exchange.FEE
 			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-			etherChange = (cost / ETHUSD)
-			etherBalanceUpdated = userDoc.Balance.Ether - etherChange
+			etherChange = -(cost / ETHUSD)
+			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		} else {
-			bitcloutChange = partialQuantityProcessed
-			bitcloutBalanceUpdated = userDoc.Balance.Bitclout - bitcloutChange
+			bitcloutChange = -partialQuantityProcessed
+			bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
 			etherChange = (cost - cost*global.Exchange.FEE) / ETHUSD
 			etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 		}
@@ -290,20 +297,23 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 
 	if bitcloutBalanceUpdated < 0 || etherBalanceUpdated < 0 {
 		log.Println("Insufficient Balance")
+		go CancelCompleteOrder(ctx, orderID, "Order cancelled due to insufficient funds.")
 		return errors.New("Insufficient Balance")
-	}
-	update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": partialQuantityProcessed}}
+	} else {
+		update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": partialQuantityProcessed}}
 
-	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
-	if err != nil {
-		log.Println(err.Error())
-		return err
+		_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		update = bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
+		_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
 	}
-	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
-	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
+
 	return nil
 }
