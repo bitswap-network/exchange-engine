@@ -175,8 +175,11 @@ func UpdateOrder(ctx context.Context, order *models.OrderSchema, upsert bool) er
 			"orderPrice":    order.OrderPrice,
 		}}
 	}
-
-	_, err := OrderCollection().UpdateOne(ctx, filter, update)
+	if upsert {
+		_, err := OrderCollection().UpdateOne(ctx, filter, update)
+	} else {
+		_, err := OrderCollection().InsertOne(ctx, filter, update)
+	}
 	if err != nil {
 		log.Printf("Could not create order: %v", err)
 		return err
