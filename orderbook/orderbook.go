@@ -70,9 +70,9 @@ type PriceLevel struct {
 //      partial      - not nil if your order has done but top order is not fully done
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
 //      quantityLeft - more than zero if it is not enought orders to process all quantity
-func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed, quantityLeft decimal.Decimal, fullPrice decimal.Decimal, err error) {
+func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decimal.Decimal, fullPrice decimal.Decimal, err error) {
 	if quantity.Sign() <= 0 {
-		return nil, nil, decimal.Zero, decimal.Zero, decimal.Zero, ErrInvalidQuantity
+		return decimal.Zero, decimal.Zero, ErrInvalidQuantity
 	}
 	// fullPrice = decimal.Zero
 	var (
@@ -90,28 +90,28 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 
 	for quantity.Sign() > 0 && sideToProcess.Len() > 0 {
 		bestPrice := iter()
-		ordersDone, partialDone, partialProcessed, quantityLeft, totalPrice := processQueue(bestPrice, quantity)
-		done = append(done, ordersDone...)
-		partial = partialDone
+		quantityLeft, totalPrice := processQueue(bestPrice, quantity)
+		// done = append(done, ordersDone...)
+		// partial = partialDone
 		fullPrice = fullPrice.Add(totalPrice)
-		partialQuantityProcessed = partialProcessed
+		// partialQuantityProcessed = partialProcessed
 		quantity = quantityLeft
 	}
 
 	quantityLeft = quantity
-	toSanitize := done
-	userBalanceMap := make(map[string]bool)
-	if partial != nil {
-		toSanitize = append(toSanitize, partial)
-	}
-	for _, order := range toSanitize {
-		if !userBalanceMap[order.User()] {
-			userBalanceMap[order.User()] = true
-		}
-	}
-	for username := range userBalanceMap {
-		go SanitizeUsersOrders(username)
-	}
+	// toSanitize := done
+	// userBalanceMap := make(map[string]bool)
+	// if partial != nil {
+	// 	toSanitize = append(toSanitize, partial)
+	// }
+	// for _, order := range toSanitize {
+	// 	if !userBalanceMap[order.User()] {
+	// 		userBalanceMap[order.User()] = true
+	// 	}
+	// }
+	// for username := range userBalanceMap {
+	// 	go SanitizeUsersOrders(username)
+	// }
 	return
 }
 
@@ -131,17 +131,17 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, par
 //                partial done and placed to the orderbook without full quantity - partial will contain
 //                your order with quantity to left
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, err error) {
+func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal, err error) {
 	if _, ok := OB.orders[orderID]; ok {
-		return nil, nil, decimal.Zero, ErrOrderExists
+		return decimal.Zero, decimal.Zero, ErrOrderExists
 	}
 
 	if quantity.Sign() <= 0 {
-		return nil, nil, decimal.Zero, ErrInvalidQuantity
+		return decimal.Zero, decimal.Zero, ErrInvalidQuantity
 	}
 
 	if price.Sign() <= 0 {
-		return nil, nil, decimal.Zero, ErrInvalidPrice
+		return decimal.Zero, decimal.Zero, ErrInvalidPrice
 	}
 
 	quantityToTrade := quantity
@@ -166,91 +166,106 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 	bestPrice := iter()
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		ordersDone, partialDone, partialQty, quantityLeft, _ := processQueue(bestPrice, quantityToTrade)
-		done = append(done, ordersDone...)
-		partial = partialDone
-		partialQuantityProcessed = partialQty
-		quantityToTrade = quantityLeft
+		quantityToTrade, totalPrice = processQueue(bestPrice, quantityToTrade)
+		// done = append(done, ordersDone...)
+		// partial = partialDone
+		// partialQuantityProcessed = partialQty
 		bestPrice = iter()
 	}
 
 	if quantityToTrade.Sign() > 0 {
 		o := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC())
-		if len(done) > 0 {
-			partialQuantityProcessed = quantity.Sub(quantityToTrade)
-			partial = o
-		}
+		// if len(done) > 0 {
+		// 	partialQuantityProcessed = quantity.Sub(quantityToTrade)
+		// 	partial = o
+		// }
 		OB.orders[orderID] = sideToAdd.Append(o)
-	} else {
-		totalQuantity := decimal.Zero
-		totalPrice := decimal.Zero
+	}
+	//  else {
+	// 	totalQuantity := decimal.Zero
+	// 	totalPrice := decimal.Zero
 
-		for _, order := range done {
-			totalQuantity = totalQuantity.Add(order.Quantity())
-			totalPrice = totalPrice.Add(order.Price().Mul(order.Quantity()))
-		}
+	// 	for _, order := range done {
+	// 		totalQuantity = totalQuantity.Add(order.Quantity())
+	// 		totalPrice = totalPrice.Add(order.Price().Mul(order.Quantity()))
+	// 	}
 
-		if partialQuantityProcessed.Sign() > 0 {
-			totalQuantity = totalQuantity.Add(partialQuantityProcessed)
-			totalPrice = totalPrice.Add(partial.Price().Mul(partialQuantityProcessed))
-		}
-		done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
-	}
-	toSanitize := done
-	userBalanceMap := make(map[string]bool)
-	if partial != nil {
-		toSanitize = append(toSanitize, partial)
-	}
-	for _, order := range toSanitize {
-		if !userBalanceMap[order.User()] {
-			userBalanceMap[order.User()] = true
-		}
-	}
-	for username := range userBalanceMap {
-		go SanitizeUsersOrders(username)
-	}
+	// 	if partialQuantityProcessed.Sign() > 0 {
+	// 		totalQuantity = totalQuantity.Add(partialQuantityProcessed)
+	// 		totalPrice = totalPrice.Add(partial.Price().Mul(partialQuantityProcessed))
+	// 	}
+	// 	done = append(done, NewOrder(orderID, side, quantity, totalPrice.Div(totalQuantity), time.Now().UTC()))
+	// }
+	// toSanitize := done
+	// userBalanceMap := make(map[string]bool)
+	// if partial != nil {
+	// 	toSanitize = append(toSanitize, partial)
+	// }
+	// for _, order := range toSanitize {
+	// 	if !userBalanceMap[order.User()] {
+	// 		userBalanceMap[order.User()] = true
+	// 	}
+	// }
+	// for username := range userBalanceMap {
+	// 	go SanitizeUsersOrders(username)
+	// }
 	return
 }
 
-func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
+func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	// totalPrice = decimal.Zero
 	quantityLeft = quantityToTrade
-	userBalanceMap := make(map[string]*models.UserBalance)
+	// userBalanceMap := make(map[string]*models.UserBalance)
 	// var toSanitize []*Order
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		if _, ok := userBalanceMap[headOrder.User()]; !ok {
-			uB, err := db.GetUserBalance(context.TODO(), headOrder.User())
-			if err != nil {
-				log.Println(err)
-			}
-			userBalanceMap[headOrder.User()] = uB
-		}
-		if postProjectValidation(userBalanceMap[headOrder.User()], headOrder) {
-			userBalanceMap[headOrder.User()] = projectBalance(userBalanceMap[headOrder.User()], headOrder)
+		// if _, ok := userBalanceMap[headOrder.User()]; !ok {
+		// 	uB, err := db.GetUserBalance(context.TODO(), headOrder.User())
+		// 	if err != nil {
+		// 		log.Println(err)
+		// 	}
+		// 	userBalanceMap[headOrder.User()] = uB
+		// }
+		if validateBalance(headOrder) {
+			// userBalanceMap[headOrder.User()] = projectBalance(userBalanceMap[headOrder.User()], headOrder)
 			log.Println("validation passed")
 			if quantityLeft.LessThan(headOrder.Quantity()) {
-				partial = NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
-				partialQuantityProcessed = quantityLeft
+				partial := NewOrder(headOrder.ID(), headOrder.Side(), headOrder.Quantity().Sub(quantityLeft), headOrder.Price(), headOrder.Time())
+				partialQuantityProcessed := quantityLeft
+				partialQuantityFloat, _ := partialQuantityProcessed.Float64()
 				totalPrice = totalPrice.Add(partialQuantityProcessed.Mul(headOrder.Price()))
 				orderQueue.Update(headOrderEl, partial)
+				orderExecPriceFloat, _ := headOrder.Price().Float64()
 				quantityLeft = decimal.Zero
+				err := db.PartialFulfillOrder(context.TODO(), partial.ID(), partialQuantityFloat, 0, orderExecPriceFloat)
+				if err != nil {
+					db.CancelCompleteOrder(context.TODO(), partial.ID(), err.Error())
+				}
 			} else {
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
 				totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
-				done = append(done, CancelOrder(headOrder.ID()))
+				//Fully filled order is cancelled (removed from the orderbook) and added to done array
+				doneOrder := CancelOrder(headOrder.ID())
+				if doneOrder != nil {
+					priceFloat, _ := headOrder.Price().Float64()
+					//If order is done, we update the database to fulfill the order
+					err := db.FulfillOrder(context.TODO(), headOrder.ID(), 0, priceFloat)
+					if err != nil {
+						db.CancelCompleteOrder(context.TODO(), doneOrder.ID(), err.Error())
+					}
+				}
 			}
 		} else {
 			log.Println("validation failed")
-			go db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 			CancelOrder(headOrder.ID())
+			db.CancelCompleteOrder(context.TODO(), headOrder.ID(), "Order cancelled due to insufficient funds.")
 		}
 	}
-	log.Println(userBalanceMap)
-	for username := range userBalanceMap {
-		go SanitizeUsersOrders(username)
-	}
+	// log.Println(userBalanceMap)
+	// for username := range userBalanceMap {
+	// 	go SanitizeUsersOrders(username)
+	// }
 	return
 }
 

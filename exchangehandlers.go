@@ -75,34 +75,35 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
-	ordersDone, partialDone, partialQuantityProcessed, quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
+
+	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
-	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
+	// partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
 	// error = db.UpdateOrderPrice(c.Request.Context(), order.OrderID, totalPriceFloat/order.OrderQuantity)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	// If any orders have been fulfilled, process them
-	if len(ordersDone) > 0 {
-		go ProcessFull(ordersDone, order.OrderPrice)
-	}
+	// if len(ordersDone) > 0 {
+	// 	go ProcessFull(ordersDone, order.OrderPrice)
+	// }
 	// If any orders have been partially fulfilled, process them
-	if partialDone != nil {
-		go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
-	}
+	// if partialDone != nil {
+	// 	go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
+	// }
 
 	// if the current order has only been partially fulfilled (quantity left > 0), then partially process it
 	if quantityLeft.IsPositive() {
-		go db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
+		db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
 	} else {
 		//add checks & validators
-		go db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
+		db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
 	}
 
 	go orderbook.SanitizeUsersOrders(order.Username)
@@ -146,18 +147,28 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 
-	ordersDone, partialDone, partialQuantityProcessed, error := orderbook.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
-	partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
+	quantityLeft, totalPrice, error := orderbook.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	if ordersDone != nil {
-		go ProcessFull(ordersDone, order.OrderPrice)
+	totalPriceFloat, _ := totalPrice.Float64()
+	quantityLeftFloat, _ := quantityLeft.Float64()
+	if quantityLeft.IsPositive() {
+		db.PartialFulfillOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat, totalPriceFloat/(order.OrderQuantity-quantityLeftFloat))
+	} else {
+		//add checks & validators
+		db.FulfillOrder(context.TODO(), order.OrderID, totalPriceFloat, totalPriceFloat/order.OrderQuantity)
 	}
-	if partialDone != nil {
-		go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
-	}
+	// ordersDone, partialDone, partialQuantityProcessed, error := orderbook.ProcessLimitOrder(orderSide, order.OrderID, orderQuantity, orderPrice)
+
+	// partialQuantityProcessedFloat, _ := partialQuantityProcessed.Float64()
+	// if ordersDone != nil {
+	// 	go ProcessFull(ordersDone, order.OrderPrice)
+	// }
+	// if partialDone != nil {
+	// 	go ProcessPartial(partialDone, partialQuantityProcessedFloat, order.OrderPrice)
+	// }
 	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
