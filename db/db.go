@@ -292,14 +292,14 @@ func PartialFulfillOrder(ctx context.Context, orderID string, partialQuantityPro
 		log.Println("Insufficient Balance")
 		return errors.New("Insufficient Balance")
 	}
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed}}
+	update := bson.M{"$set": bson.M{"execPrice": execPrice, "orderQuantityProcessed": partialQuantityProcessed}}
 
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	update = bson.M{"$set": bson.M{"execPrice": execPrice, "balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
+	update = bson.M{"$set": bson.M{"balance.bitclout": bitcloutBalanceUpdated, "balance.ether": etherBalanceUpdated}}
 	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
 	if err != nil {
 		log.Println(err.Error())
