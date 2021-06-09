@@ -269,7 +269,7 @@ func CancelOrder(orderID string) *Order {
 	if !ok {
 		return nil
 	}
-	db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled.")
+	db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled due to insufficient funds.")
 	delete(OB.orders, orderID)
 
 	if e.Value.(*Order).Side() == Buy {
