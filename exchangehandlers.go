@@ -121,7 +121,7 @@ func LimitOrderHandler(c *gin.Context) {
 	}
 
 	order.OrderType = "limit"
-	order.Created = time.Now()
+	order.Created = time.Now().UTC()
 	order.Complete = false
 	order.OrderQuantityProcessed = 0
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)

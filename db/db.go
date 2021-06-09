@@ -196,7 +196,7 @@ func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64) e
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string) error {
 	log.Printf("cancel complete: %v\n", orderID)
 
-	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now()}}
+	update := bson.M{"$set": bson.M{"error": errorString, "complete": true, "completeTime": time.Now().UTC()}}
 	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -224,10 +224,10 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 	var bitcloutChange, etherChange float64
 	//update ether USD price var
 	if orderDoc.OrderSide == "buy" {
-		bitcloutChange = (orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed) - ((orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed) * global.Exchange.FEE)
+		bitcloutChange = (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) - ((orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) * global.Exchange.FEE)
 		etherChange = -(execPrice / ETHUSD)
 	} else {
-		bitcloutChange = -(orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed)
+		bitcloutChange = -(orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed)
 		etherChange = (execPrice - (execPrice * global.Exchange.FEE)) / ETHUSD
 	}
 
@@ -242,8 +242,8 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 	update = bson.M{"$set": bson.M{
 		"orderQuantityProcessed": orderDoc.OrderQuantity,
 		"complete":               true,
-		"completeTime":           time.Now(),
-		"execPrice":              (execPrice / (orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed)),
+		"completeTime":           time.Now().UTC(),
+		"execPrice":              (execPrice / (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed)),
 	}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {

@@ -303,7 +303,7 @@ func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice 
 		return nil
 	}
 	order := e.Value.(*Order)
-	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now(), true)
+	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now().UTC(), true)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
