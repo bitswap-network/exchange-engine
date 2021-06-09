@@ -123,6 +123,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.OrderType = "limit"
 	order.Created = time.Now()
 	order.Complete = false
+	order.OrderQuantityProcessed = 0
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	error := db.CreateOrder(c.Request.Context(), &order)
