@@ -224,10 +224,10 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 	var bitcloutChange, etherChange float64
 	//update ether USD price var
 	if orderDoc.OrderSide == "buy" {
-		bitcloutChange = orderDoc.OrderQuantity - (orderDoc.OrderQuantity * global.Exchange.FEE)
+		bitcloutChange = (orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed) - ((orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed) * global.Exchange.FEE)
 		etherChange = -(execPrice / ETHUSD)
 	} else {
-		bitcloutChange = -orderDoc.OrderQuantity
+		bitcloutChange = -(orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed)
 		etherChange = (execPrice - (execPrice * global.Exchange.FEE)) / ETHUSD
 	}
 
@@ -243,7 +243,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 		"orderQuantityProcessed": orderDoc.OrderQuantity,
 		"complete":               true,
 		"completeTime":           time.Now(),
-		"execPrice":              (execPrice / orderDoc.OrderQuantity),
+		"execPrice":              (execPrice / (orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed)),
 	}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
@@ -301,7 +301,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 
 func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64, totalPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
-	log.Printf("partial market fulfill: %v - %v\n", orderID, quantityProcessed)
+	log.Printf("market fulfill: %v - %v\n", orderID, quantityProcessed)
 	var orderDoc *models.OrderSchema
 	var userDoc *models.UserSchema
 
