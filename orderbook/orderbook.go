@@ -131,6 +131,7 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 	}
 
 	quantityToTrade := quantity
+	quantityLeft = quantityToTrade
 	var (
 		sideToProcess *OrderSide
 		sideToAdd     *OrderSide
@@ -149,18 +150,18 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		comparator = price.LessThanOrEqual
 		iter = OB.bids.MaxPriceQueue
 	}
-
 	bestPrice := iter()
-	log.Printf("Quantity To Trade: %s, side To Process length: %d\n", quantityToTrade.String(), sideToProcess.Len())
+	log.Printf("Quantity To Trade: %s, side To Process length: %d\n\n", quantityToTrade.String(), sideToProcess.Len())
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		log.Printf("quant to trade: %s, quantity left: %s",quantityToTrade.String(), quantityLeft.String())
+		log.Printf("quant to trade: %s, quantity left: %s\n\n", quantityToTrade.String(), quantityLeft.String())
 		quantityLeft, totalPrice = processQueue(bestPrice, quantityToTrade)
 		log.Println(quantityLeft, totalPrice)
 		quantityToTrade = quantityLeft
 		bestPrice = iter()
 	}
-
+	log.Println(quantityToTrade)
 	if quantityToTrade.Sign() > 0 {
+		log.Printf("Attempting to Create New Order of %d\n\n", quantityToTrade)
 		o, err := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC(), quantity != quantityToTrade)
 		if err != nil {
 			log.Println(err.Error())
