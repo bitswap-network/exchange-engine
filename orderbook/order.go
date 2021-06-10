@@ -22,15 +22,22 @@ type Order struct {
 	price     decimal.Decimal
 }
 
-// NewOrder creates new constant object Order
+/*
+NewOrder creates new constant object Order
+Arguments:
+	orderID - The ID of the order to create
+	side - Whether the order is an `ob.Buy` or an `ob.Sell`
+	price - The price at which the order is created
+	timestamp - The time at which the order was created
+	update - Whether to update the database with the order. If update is false, no database calls are created
+*/
 func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timestamp time.Time, update bool) (*Order, error) {
 
 	if update {
 		quantFloat, _ := quantity.Float64()
 		priceFloat, _ := price.Float64()
 
-		var dbOrder *models.OrderSchema
-		dbOrder = &models.OrderSchema{
+		dbOrder := &models.OrderSchema{
 			OrderID:                orderID,
 			OrderSide:              side.String(),
 			OrderQuantityProcessed: quantFloat,

@@ -47,7 +47,6 @@ func SanitizeHandler(c *gin.Context) {
 func MarketOrderHandler(c *gin.Context) {
 	var order models.OrderSchema
 	if err := c.ShouldBindWith(&order, binding.JSON); err != nil {
-		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -62,18 +61,17 @@ func MarketOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
-
-	// Initialize the Order
-	order.OrderType = "market"
-	order.Created = time.Now().UTC()
-	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-
 	// Ensure that the order has a valid quantity
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
+
+	// Initialize the Order
+	order.OrderType = "market"
+	order.Created = time.Now().UTC()
+	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	// Attempt to create an order in the database
 	err := db.CreateOrder(c.Request.Context(), &order)
@@ -174,8 +172,7 @@ func CancelOrderHandler(c *gin.Context) {
 	var orderID struct {
 		ID string `json:"orderID" binding:"required"`
 	}
-	if err := c.ShouldBindBodyWith(&orderID, binding.JSON); err != nil {
-		log.Println(err)
+	if err := c.ShouldBindWith(&orderID, binding.JSON); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
