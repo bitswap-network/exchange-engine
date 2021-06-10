@@ -83,6 +83,7 @@ func MarketOrderHandler(c *gin.Context) {
 	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
+		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
