@@ -26,20 +26,7 @@ func SanitizeHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
 		return
 	}
-	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	var orderList []*orderbook.Order
-	for _, order := range orders {
-		orderFromState := orderbook.GetOrder(order.OrderID)
-		log.Println(orderFromState)
-		if orderFromState != nil {
-			orderList = append(orderList, orderFromState)
-		}
-	}
-	go orderbook.Sanitize(orderList)
+	go orderbook.SanitizeUsersOrders(reqBody.Username)
 	c.String(http.StatusOK, "OK")
 	return
 }

@@ -139,20 +139,16 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	// if err = cursor.All(ctx, ordersDoc); err != nil {
-	// 	log.Println(err.Error())
-	// }
 	for cursor.Next(ctx) {
 		//Create a value into which the single document can be decoded
 		var elem models.OrderSchema
 		err := cursor.Decode(&elem)
 		if err != nil {
 			log.Println(err)
+			return nil, err
 		}
-		log.Println(elem)
 		ordersArray = append(ordersArray, elem)
 	}
-	log.Println("done fetching orders")
 	return ordersArray, nil
 }
 

@@ -225,7 +225,6 @@ func Sanitize(orders []*Order) {
 		log.Printf("Validating: %s\n", order.ID())
 		if !validateBalance(order) {
 			log.Printf("Validation failed for: %s\n", order.ID())
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
 			CancelOrder(order.ID())
 		}
 	}

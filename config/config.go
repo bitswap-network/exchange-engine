@@ -65,11 +65,8 @@ func Setup() {
 	DatabaseConfig.AWSKey = envMap["MONGODB_USERNAME"]
 	DatabaseConfig.AWSSecret = envMap["MONGODB_PASSWORD"]
 	DatabaseConfig.ClusterEndpoint = envMap["MONGODB_ENDPOINT"]
-	if IsTest {
-		DatabaseConfig.DatabaseName = "staging"
-	} else {
-		DatabaseConfig.DatabaseName = "production"
-	}
+	
+		DatabaseConfig.DatabaseName = "DB_NAME"
 
 	S3Config.Region = "us-east-1"
 	S3Config.LogName = "orderbook"
