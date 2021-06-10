@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -169,15 +170,12 @@ func CancelOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrderId := orderbook.CancelOrder(orderID.ID)
-	if cancelledOrderId == nil {
-		c.String(http.StatusConflict, "Invalid order ID")
+	cancelledOrder, err := orderbook.CancelOrder(orderID.ID,"Order Cancelled by User")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error":err})
 		return
 	}
-
-	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
-	go orderbook.SanitizeUsersOrders(cancelledOrderId.User())
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
+	c.String(http.StatusOK,fmt.Sprintf("Cancelled order: %s",cancelledOrder.ID()))
 	return
 }
