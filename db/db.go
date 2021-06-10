@@ -132,7 +132,7 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 func GetUserBalance(ctx context.Context, username string) (balance *models.UserBalance, err error) {
 	log.Printf("fetching user balance from: %v\n", username)
 	var userDoc *models.UserSchema
-	err = UserCollection().FindOne(ctx, bson.M{"username": username}).Decode(&userDoc)
+	err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": username}).Decode(&userDoc)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -217,7 +217,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 		return err
 	}
 	//finding user associated with order
-	err = UserCollection().FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 
 	// attempt to modify bitclout balance and eth balance
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
-	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+	_, err = UserCollection().UpdateOne(ctx, bson.M{"bitclout.username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 		log.Println(err)
 		return err
 	}
-	err = UserCollection().FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -284,7 +284,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 
 	// attempt to modify bitclout balance and eth balance
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
-	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+	_, err = UserCollection().UpdateOne(ctx, bson.M{"bitclout.username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 	}
 
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
-	_, err = UserCollection().UpdateOne(ctx, bson.M{"username": orderDoc.Username}, update)
+	_, err = UserCollection().UpdateOne(ctx, bson.M{"bitclout.username": orderDoc.Username}, update)
 	if err != nil {
 		return err
 	}
