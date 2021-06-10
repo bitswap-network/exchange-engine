@@ -109,7 +109,12 @@ Retrieves and populates a user doc from the database given the username
 Arguments:
 	ctx - The context from which the function is being called
 	username - The username of the user you are searching for
-	userDoc - The struct to hold the user document
+
+Returns:
+	The userDoc retrieved from mongo
+	An error if:
+		(most likely) the user could not be found
+		mongo connection failed or something went wrong.
 */
 func GetUserDoc(ctx context.Context, username string) (*models.UserSchema, error) {
 	var userDoc *models.UserSchema
@@ -121,6 +126,20 @@ func GetUserDoc(ctx context.Context, username string) (*models.UserSchema, error
 	return userDoc, nil
 }
 
+/*
+Updates a user's bitclout and ether balance
+
+Arguments:
+	ctx - The context from which the function is being called
+	username - The username of the user you are searching for
+	bitcloutChange - The change in bitClout quantity
+	etherChange - The change in ether quantity
+
+Returns:
+	An error if:
+		(most likely) The user's balance becomes invalid (below 0)
+		mongo connection failed or something went wrong.
+*/
 func UpdateUserBalance(ctx context.Context, username string, bitcloutChange, etherChange float64) error {
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.username": username}, update)
@@ -130,8 +149,20 @@ func UpdateUserBalance(ctx context.Context, username string, bitcloutChange, eth
 	return nil
 }
 
+/*
+Retrieves user orders from the database given the username
+
+Arguments:
+	ctx - The context from which the function is being called
+	username - The username of the user you are searching for
+
+Returns:
+	An array of orders
+	An error if:
+		(most likely) the user could not be found
+		mongo connection failed or something went wrong.
+*/
 func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, error) {
-	log.Printf("fetching user orders: %v\n", username)
 	var ordersArray []models.OrderSchema
 	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
 	if err != nil {
@@ -139,9 +170,6 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	// if err = cursor.All(ctx, ordersDoc); err != nil {
-	// 	log.Println(err.Error())
-	// }
 	for cursor.Next(ctx) {
 		//Create a value into which the single document can be decoded
 		var elem models.OrderSchema
@@ -149,27 +177,30 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println(elem)
 		ordersArray = append(ordersArray, elem)
 	}
-	log.Println("done fetching orders")
 	return ordersArray, nil
 }
 
+/*
+Retrieves a user's balance from the database given the username
+
+Arguments:
+	ctx - The context from which the function is being called
+	username - The username of the user you are searching for
+
+Returns:
+	The user's balance
+	An error if:
+		(most likely) the user could not be found
+		mongo connection failed or something went wrong.
+*/
 func GetUserBalance(ctx context.Context, username string) (balance *models.UserBalance, err error) {
-	log.Printf("fetching user balance from: %v\n", username)
-	// var userDoc *models.UserSchema
 	userDoc, err := GetUserDoc(ctx, username)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-	// err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": username}).Decode(&userDoc)
-	// if err != nil {
-	// 	log.Println(err.Error())
-	// 	return nil, err
-	// }
-	log.Println("done fetching balance")
 	return userDoc.Balance, nil
 }
 
@@ -184,18 +215,41 @@ func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
 	return nil
 }
 
+/*
+Pushes an order to the database
+
+Arguments:
+	ctx - The context from which the function is being called
+	order - The order to push
+
+Returns:
+	An error if:
+		(most likely) the error could not be pushed
+		mongo connection failed or something went wrong.
+*/
 func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
-	log.Printf("create order: %v \n", order.OrderID)
 	order.ID = primitive.NewObjectID()
 	_, err := OrderCollection().InsertOne(ctx, order)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	log.Println("done creating order")
 	return nil
 }
 
+/*
+Updates an order's `orderQuantityProcessed` and `orderPrice` fields in the database.
+This is most likely used to update orders after fulfilling partial buy or sell orders.
+
+Arguments:
+	ctx - The context from which the function is being called
+	order - The order to update
+
+Returns:
+	An error if:
+		(most likely) the error could not be updated
+		mongo connection failed or something went wrong.
+*/
 func UpdateOrder(ctx context.Context, order *models.OrderSchema) error {
 	log.Printf("updating order: %v\n", order.OrderID)
 	filter := bson.M{"orderID": order.OrderID}
@@ -213,18 +267,19 @@ func UpdateOrder(ctx context.Context, order *models.OrderSchema) error {
 	return nil
 }
 
-func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64) error {
-	log.Printf("update order price: %v\n", orderID)
+/*
+Cancels an order given its ID.
 
-	update := bson.M{"$set": bson.M{"orderPrice": orderPrice}}
-	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+Arguments:
+	ctx - The context from which the function is being called
+	orderID - The ID of the order to cancel
+	errorString - A reason for cancelling the order
 
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
+Returns:
+	An error if:
+		(most likely) the order could not be cancelled
+		mongo connection failed or something went wrong.
+*/
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string) error {
 	log.Printf("cancel complete: %v\n", orderID)
 
@@ -236,6 +291,19 @@ func CancelCompleteOrder(ctx context.Context, orderID string, errorString string
 	return nil
 }
 
+/*
+Completes a limit buy or sell order
+
+Arguments:
+	ctx - The context from which the function is being called
+	orderID - The ID of the order to complete
+	execPrice - The price at which the limit order is executed (sold or bought)
+
+Returns:
+	An error if:
+		(most likely) the order could not be completed
+		mongo connection failed or something went wrong.
+*/
 func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 
@@ -280,6 +348,20 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 	return nil
 }
 
+/*
+Completes a partial limit order
+
+Arguments:
+	ctx - The context from which the function is being called
+	orderID - The ID of the order to complete
+	partialQuantityProcessed - The quantity of the total order that has been processed
+	execPrice - The price at which the limit order is executed (sold or bought)
+
+Returns:
+	An error if:
+		(most likely) the limit order could not be partially fulfilled
+		mongo connection failed or something went wrong.
+*/
 func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, execPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v\n", orderID, partialQuantityProcessed)
@@ -290,18 +372,14 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 		log.Println(err)
 		return err
 	}
-	
+
 	var bitcloutChange, etherChange float64
 	if orderDoc.OrderSide == "buy" {
 		bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
-		// bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
 		etherChange = -execPrice / ETHUSD
-		// etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 	} else {
 		bitcloutChange = -partialQuantityProcessed
-		// bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
 		etherChange = (execPrice - (execPrice * global.Exchange.FEE)) / ETHUSD
-		// etherBalanceUpdated = userDoc.Balance.Ether + etherChange
 	}
 
 	// attempt to modify bitclout balance and eth balance
@@ -321,6 +399,20 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 	return nil
 }
 
+/*
+Completes a market order
+
+Arguments:
+	ctx - The context from which the function is being called
+	orderID - The ID of the order to complete
+	auantityProcessed - The quantity of the total order that has been processed
+	execPrice - The price at which the limit order is executed (sold or bought)
+
+Returns:
+	An error if:
+		(most likely) the market order could not be partially fulfilled
+		mongo connection failed or something went wrong.
+*/
 func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64, totalPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("market fulfill: %v - %v\n", orderID, quantityProcessed)
@@ -329,11 +421,6 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
 		log.Println("Couldn't find the orderID\n" + err.Error())
-		return err
-	}
-	// err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": orderDoc.Username}).Decode(&userDoc)
-	if err != nil {
-		log.Println("Couldn't find the user\n" + err.Error())
 		return err
 	}
 	var bitcloutChange, etherChange float64
