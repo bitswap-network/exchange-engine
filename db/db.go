@@ -307,12 +307,12 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 
 	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
 	if err != nil {
-		log.Println(err)
+		log.Println("Couldn't find the orderID\n" + err.Error())
 		return err
 	}
-	err = UserCollection().FindOne(ctx, bson.M{"username": orderDoc.Username}).Decode(&userDoc)
+	err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": orderDoc.Username}).Decode(&userDoc)
 	if err != nil {
-		log.Println(err)
+		log.Println("Couldn't find the user\n" + err.Error())
 		return err
 	}
 	var bitcloutChange, etherChange float64

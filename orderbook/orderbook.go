@@ -265,7 +265,7 @@ func CancelOrder(orderID string) *Order {
 	if !ok {
 		return nil
 	}
-	err := db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled due to insufficient funds.")
+	err := db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled")
 	if err != nil {
 		log.Println(err.Error())
 	}

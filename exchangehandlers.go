@@ -47,7 +47,6 @@ func SanitizeHandler(c *gin.Context) {
 func MarketOrderHandler(c *gin.Context) {
 	var order models.OrderSchema
 	if err := c.ShouldBindWith(&order, binding.JSON); err != nil {
-		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
