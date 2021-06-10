@@ -24,6 +24,12 @@ type OrderBook struct {
 
 var OB = &OrderBook{}
 
+/*
+Initializes the orderbook
+
+Arguments:
+	blank - Whether the orderbook is empty. If true, the orderbook is retrieved from the s3 bucket.
+*/
 func Setup(blank bool) {
 	log.Println("orderbook setup")
 	if !blank {
@@ -65,11 +71,8 @@ type PriceLevel struct {
 //
 // Return:
 //      error        - not nil if price is less or equal 0
-//      done         - not nil if your market order produces ends of anoter orders, this order will add to
-//                     the "done" slice
-//      partial      - not nil if your order has done but top order is not fully done
-//      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-//      quantityLeft - more than zero if it is not enought orders to process all quantity
+//      quantityLeft - More than zero if there are too few orders to process the `quantity`
+//      fullPrice - The total price of the existing orders fulfilled using `quantity`. Zero if no orders are fulfilled.
 func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decimal.Decimal, fullPrice decimal.Decimal, err error) {
 	if quantity.Sign() <= 0 {
 		return decimal.Zero, decimal.Zero, ErrInvalidQuantity
@@ -91,10 +94,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 	for quantity.Sign() > 0 && sideToProcess.Len() > 0 {
 		bestPrice := iter()
 		quantityLeft, totalPrice := processQueue(bestPrice, quantity)
-		// done = append(done, ordersDone...)
-		// partial = partialDone
 		fullPrice = fullPrice.Add(totalPrice)
-		// partialQuantityProcessed = partialProcessed
 		quantity = quantityLeft
 	}
 	quantityLeft = quantity
@@ -117,7 +117,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 //                partial done and placed to the orderbook without full quantity - partial will contain
 //                your order with quantity to left
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal, err error) {
+func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (quantityToTrade decimal.Decimal, totalPrice decimal.Decimal, err error) {
 	if _, ok := OB.orders[orderID]; ok {
 		return decimal.Zero, decimal.Zero, ErrOrderExists
 	}
@@ -130,8 +130,8 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		return decimal.Zero, decimal.Zero, ErrInvalidPrice
 	}
 
-	quantityToTrade := quantity
-	quantityLeft = quantityToTrade
+	quantityToTrade = quantity
+	// quantityLeft = quantityToTrade
 	var (
 		sideToProcess *OrderSide
 		sideToAdd     *OrderSide
@@ -151,16 +151,12 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		iter = OB.bids.MaxPriceQueue
 	}
 	bestPrice := iter()
-	log.Printf("Quantity To Trade: %s, side To Process length: %d\n\n", quantityToTrade.String(), sideToProcess.Len())
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		log.Printf("quant to trade: %s, quantity left: %s\n\n", quantityToTrade.String(), quantityLeft.String())
-		quantityLeft, totalPrice = processQueue(bestPrice, quantityToTrade)
-		quantityToTrade = quantityLeft
+		quantityToTrade, totalPrice = processQueue(bestPrice, quantityToTrade)
 		bestPrice = iter()
 	}
 
 	if quantityToTrade.Sign() > 0 {
-		log.Printf("Attempting to Create New Order of %d\n\n", quantityToTrade)
 		o, err := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC(), quantity != quantityToTrade)
 		if err != nil {
 			log.Println(err.Error())
@@ -174,13 +170,13 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	quantityLeft = quantityToTrade
-	log.Printf("Proc q: %s\n", quantityToTrade.String())
+	// log.Printf("Proc q: %d\n", quantityToTrade)
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		log.Printf("Proc q head: %s\n", headOrder.ID())
+		// log.Printf("Proc q head: %s\n", headOrder.ID())
 		if validateBalance(headOrder) {
-			log.Println("validation passed")
+			// log.Println("validation passed")
 			//partial order
 
 			if quantityLeft.LessThan(headOrder.Quantity()) {
@@ -269,7 +265,10 @@ func CancelOrder(orderID string) *Order {
 	if !ok {
 		return nil
 	}
-	db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled due to insufficient funds.")
+	err := db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled due to insufficient funds.")
+	if err != nil {
+		log.Println(err.Error())
+	}
 	delete(OB.orders, orderID)
 
 	if e.Value.(*Order).Side() == Buy {
@@ -371,26 +370,26 @@ func MarshalJSON() ([]byte, error) {
 	)
 }
 
-func Depth() (asks, bids []*PriceLevel) {
-	level := OB.asks.MaxPriceQueue()
-	for level != nil {
-		asks = append(asks, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
-		})
-		level = OB.asks.LessThan(level.Price())
-	}
+// func Depth() (asks, bids []*PriceLevel) {
+// 	level := OB.asks.MaxPriceQueue()
+// 	for level != nil {
+// 		asks = append(asks, &PriceLevel{
+// 			Price:    level.Price(),
+// 			Quantity: level.Volume(),
+// 		})
+// 		level = OB.asks.LessThan(level.Price())
+// 	}
 
-	level = OB.bids.MaxPriceQueue()
-	for level != nil {
-		bids = append(bids, &PriceLevel{
-			Price:    level.Price(),
-			Quantity: level.Volume(),
-		})
-		level = OB.bids.LessThan(level.Price())
-	}
-	return
-}
+// 	level = OB.bids.MaxPriceQueue()
+// 	for level != nil {
+// 		bids = append(bids, &PriceLevel{
+// 			Price:    level.Price(),
+// 			Quantity: level.Volume(),
+// 		})
+// 		level = OB.bids.LessThan(level.Price())
+// 	}
+// 	return
+// }
 
 func GetOrderbookBytes() (data []byte) {
 	data, err := MarshalJSON()
