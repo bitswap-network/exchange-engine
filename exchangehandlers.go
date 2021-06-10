@@ -70,7 +70,7 @@ func MarketOrderHandler(c *gin.Context) {
 	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -80,7 +80,7 @@ func MarketOrderHandler(c *gin.Context) {
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	error = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -122,7 +122,7 @@ func LimitOrderHandler(c *gin.Context) {
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,orderbook.ErrInvalidQuantity.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, orderbook.ErrInvalidQuantity.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
@@ -133,7 +133,7 @@ func LimitOrderHandler(c *gin.Context) {
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -143,7 +143,7 @@ func LimitOrderHandler(c *gin.Context) {
 			// partially fulfilled
 			error = db.PartialLimitOrder(c.Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 			if error != nil {
-				db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+				db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 				c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 				return
 			}
@@ -151,7 +151,7 @@ func LimitOrderHandler(c *gin.Context) {
 	} else {
 		error = db.CompleteLimitOrder(c.Request.Context(), order.OrderID, totalPriceFloat)
 		if error != nil {
-			db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+			db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 			return
 		}

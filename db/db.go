@@ -286,7 +286,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 		log.Println(err)
 		return err
 	}
-	
+
 	var bitcloutChange, etherChange float64
 	if orderDoc.OrderSide == "buy" {
 		bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
