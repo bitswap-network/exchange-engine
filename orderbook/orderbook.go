@@ -174,7 +174,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		err := validateBalance(headOrder)
+		err := validateBalance(headOrder, true)
 		if err == nil {
 			//partial order
 			if quantityLeft.LessThan(headOrder.Quantity()) {
@@ -220,7 +220,7 @@ func SanitizeUsersOrders(username string) {
 func Sanitize(orders []*Order) {
 	for _, order := range orders {
 		log.Printf("Validating: %s\n", order.ID())
-		err := validateBalance(order)
+		err := validateBalance(order, false)
 		if err != nil {
 			log.Printf("Validation failed for: %s\n", order.ID())
 			CancelOrder(order.ID(), err.Error())
@@ -230,13 +230,13 @@ func Sanitize(orders []*Order) {
 }
 
 // internal user balance
-func validateBalance(order *Order) error {
+func validateBalance(order *Order, checkInTransaction bool) error {
 	balance, err := db.GetUserBalance(context.TODO(), order.User())
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	if balance.InTransaction {
+	if balance.InTransaction && checkInTransaction {
 		return errors.New("User in transaction while executing.")
 	} else {
 		totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
@@ -253,10 +253,8 @@ func validateBalance(order *Order) error {
 			} else {
 				return errors.New("Insufficient funds.")
 			}
-
 		}
 	}
-
 }
 
 // Order returns order by id
