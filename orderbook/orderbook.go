@@ -222,7 +222,7 @@ func Sanitize(orders []*Order) {
 	for _, order := range orders {
 		log.Printf("Validating: %s\n", order.ID())
 		err := validateBalance(order)
-		if err!=nil {
+		if err != nil {
 			log.Printf("Validation failed for: %s\n", order.ID())
 			CancelOrder(order.ID(), err.Error())
 		}
@@ -241,23 +241,23 @@ func validateBalance(order *Order) error {
 		return errors.New("User in transaction while executing.")
 	} else {
 		totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
-	totalQuantity, _ := (order.Quantity()).Float64()
-	if order.Side() == Buy {
-		if totalPrice/global.Exchange.ETHUSD <= balance.Ether {
-			return nil
-		} else{
-			return errors.New("Insufficient funds.")
+		totalQuantity, _ := (order.Quantity()).Float64()
+		if order.Side() == Buy {
+			if totalPrice/global.Exchange.ETHUSD <= balance.Ether {
+				return nil
+			} else {
+				return errors.New("Insufficient funds.")
+			}
+		} else {
+			if totalQuantity <= balance.Bitclout {
+				return nil
+			} else {
+				return errors.New("Insufficient funds.")
+			}
+
 		}
-	} else {
-		if totalQuantity <= balance.Bitclout {
-			return nil
-		}else{
-			return errors.New("Insufficient funds.")
-		}
-		 
 	}
-	}
-	
+
 }
 
 // Order returns order by id
