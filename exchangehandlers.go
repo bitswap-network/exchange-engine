@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
 	"v1.1-fulfiller/db"
+	"v1.1-fulfiller/global"
 	"v1.1-fulfiller/models"
 	"v1.1-fulfiller/orderbook"
 	"v1.1-fulfiller/s3"
@@ -60,9 +61,18 @@ func MarketOrderHandler(c *gin.Context) {
 	order.OrderType = "market"
 	order.Created = time.Now().UTC()
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
-
+	estMarketPrice, err := orderbook.CalculateMarketPrice(orderSide, orderQuantity)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	estMarketPriceFloat, _ := estMarketPrice.Float64()
+	if !db.ValidateOrder(c.Request.Context(), order.Username, order.OrderSide, order.OrderQuantity, estMarketPriceFloat/global.Exchange.ETHUSD) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
+		return
+	}
 	// Attempt to create an order in the database
-	err := db.CreateOrder(c.Request.Context(), &order)
+	err = db.CreateOrder(c.Request.Context(), &order)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,10 +89,10 @@ func MarketOrderHandler(c *gin.Context) {
 	// give the current order's issuer orderQuantity - quantityLeft
 	totalPriceFloat, _ := totalPrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
-	error = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
-	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+	err = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
+	if err != nil {
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	// go orderbook.SanitizeUsersOrders(order.Username)
@@ -114,9 +124,13 @@ func LimitOrderHandler(c *gin.Context) {
 	order.OrderQuantityProcessed = 0
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
-	error := db.CreateOrder(c.Request.Context(), &order)
-	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+	if !db.ValidateOrder(c.Request.Context(), order.Username, order.OrderSide, order.OrderQuantity, (order.OrderPrice*order.OrderQuantity)/global.Exchange.ETHUSD) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
+		return
+	}
+	err := db.CreateOrder(c.Request.Context(), &order)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
