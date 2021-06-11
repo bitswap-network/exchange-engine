@@ -170,13 +170,10 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 
 func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quantityLeft decimal.Decimal, totalPrice decimal.Decimal) {
 	quantityLeft = quantityToTrade
-	// log.Printf("Proc q: %d\n", quantityToTrade)
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		// log.Printf("Proc q head: %s\n", headOrder.ID())
 		if validateBalance(headOrder) {
-			// log.Println("validation passed")
 			//partial order
 
 			if quantityLeft.LessThan(headOrder.Quantity()) {
@@ -196,7 +193,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				CompleteOrder(headOrder.ID(), deltaPriceFloat)
 			}
 		} else {
-			CancelOrder(headOrder.ID())
+			CancelOrder(headOrder.ID(),"Insufficient funds.")
 		}
 	}
 	return
@@ -216,7 +213,7 @@ func SanitizeUsersOrders(username string) {
 			orderList = append(orderList, orderFromState)
 		}
 	}
-	go Sanitize(orderList)
+	Sanitize(orderList)
 	return
 }
 
@@ -225,8 +222,7 @@ func Sanitize(orders []*Order) {
 		log.Printf("Validating: %s\n", order.ID())
 		if !validateBalance(order) {
 			log.Printf("Validation failed for: %s\n", order.ID())
-			go db.CancelCompleteOrder(context.TODO(), order.ID(), "Order cancelled during sanitization due to insufficient funds.")
-			CancelOrder(order.ID())
+			CancelOrder(order.ID(), "Insufficient funds.")
 		}
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
@@ -260,22 +256,22 @@ func GetOrder(orderID string) *Order {
 // Depth returns price levels and volume at price level
 
 // CancelOrder removes order with given ID from the order book
-func CancelOrder(orderID string) *Order {
+func CancelOrder(orderID string, errorString string) (*Order, error) {
 	e, ok := OB.orders[orderID]
 	if !ok {
-		return nil
+		return nil, ErrOrderNotExists
 	}
-	err := db.CancelCompleteOrder(context.TODO(), orderID, "Order cancelled")
+	err := db.CancelCompleteOrder(context.TODO(), orderID, errorString)
 	if err != nil {
 		log.Println(err.Error())
+		return nil, err
 	}
 	delete(OB.orders, orderID)
-
 	if e.Value.(*Order).Side() == Buy {
-		return OB.bids.Remove(e)
+		return OB.bids.Remove(e), nil
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
-	return OB.asks.Remove(e)
+	return OB.asks.Remove(e), nil
 }
 
 func CompleteOrder(orderID string, totalPrice float64) *Order {
@@ -310,7 +306,7 @@ func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice 
 	err = db.PartialLimitOrder(context.TODO(), orderID, quantityProcessedFloat, totalPrice)
 	if err != nil {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
-		CancelOrder(orderID)
+		CancelOrder(orderID,err.Error())
 	}
 	return partialOrder
 }

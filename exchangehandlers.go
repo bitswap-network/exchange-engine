@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -26,20 +27,7 @@ func SanitizeHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
 		return
 	}
-	orders, err := db.GetUserOrders(c.Request.Context(), reqBody.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	var orderList []*orderbook.Order
-	for _, order := range orders {
-		orderFromState := orderbook.GetOrder(order.OrderID)
-		log.Println(orderFromState)
-		if orderFromState != nil {
-			orderList = append(orderList, orderFromState)
-		}
-	}
-	go orderbook.Sanitize(orderList)
+	orderbook.SanitizeUsersOrders(reqBody.Username)
 	c.String(http.StatusOK, "OK")
 	return
 }
@@ -83,7 +71,7 @@ func MarketOrderHandler(c *gin.Context) {
 	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -93,7 +81,7 @@ func MarketOrderHandler(c *gin.Context) {
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	error = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -135,7 +123,7 @@ func LimitOrderHandler(c *gin.Context) {
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,orderbook.ErrInvalidQuantity.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, orderbook.ErrInvalidQuantity.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
@@ -146,7 +134,7 @@ func LimitOrderHandler(c *gin.Context) {
 	quantityLeftFloat, _ := quantityLeft.Float64()
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
@@ -156,7 +144,7 @@ func LimitOrderHandler(c *gin.Context) {
 			// partially fulfilled
 			error = db.PartialLimitOrder(c.Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 			if error != nil {
-				db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+				db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 				c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 				return
 			}
@@ -164,7 +152,7 @@ func LimitOrderHandler(c *gin.Context) {
 	} else {
 		error = db.CompleteLimitOrder(c.Request.Context(), order.OrderID, totalPriceFloat)
 		if error != nil {
-			db.CancelCompleteOrder(c.Request.Context(),order.OrderID,error.Error())
+			db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 			return
 		}
@@ -182,15 +170,12 @@ func CancelOrderHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrderId := orderbook.CancelOrder(orderID.ID)
-	if cancelledOrderId == nil {
-		c.String(http.StatusConflict, "Invalid order ID")
+	cancelledOrder, err := orderbook.CancelOrder(orderID.ID,"Order Cancelled by User")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error":err})
 		return
 	}
-
-	go db.CancelCompleteOrder(context.TODO(), orderID.ID, "Order Cancelled by User")
-	go orderbook.SanitizeUsersOrders(cancelledOrderId.User())
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.JSON(http.StatusOK, gin.H{"order": cancelledOrderId})
+	c.String(http.StatusOK,fmt.Sprintf("Cancelled order: %s",cancelledOrder.ID()))
 	return
 }

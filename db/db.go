@@ -176,6 +176,7 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 		err := cursor.Decode(&elem)
 		if err != nil {
 			log.Println(err)
+			return nil, err
 		}
 		ordersArray = append(ordersArray, elem)
 	}
