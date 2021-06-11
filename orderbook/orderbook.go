@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -173,7 +174,8 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 	for orderQueue.Len() > 0 && quantityLeft.Sign() > 0 {
 		headOrderEl := orderQueue.Head()
 		headOrder := headOrderEl.Value.(*Order)
-		if validateBalance(headOrder) {
+		err := validateBalance(headOrder)
+		if err == nil {
 			//partial order
 
 			if quantityLeft.LessThan(headOrder.Quantity()) {
@@ -192,7 +194,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				CompleteOrder(headOrder.ID(), deltaPriceFloat)
 			}
 		} else {
-			CancelOrder(headOrder.ID(), "Insufficient funds.")
+			CancelOrder(headOrder.ID(), err.Error())
 		}
 	}
 	return
@@ -219,28 +221,43 @@ func SanitizeUsersOrders(username string) {
 func Sanitize(orders []*Order) {
 	for _, order := range orders {
 		log.Printf("Validating: %s\n", order.ID())
-		if !validateBalance(order) {
+		err := validateBalance(order)
+		if err!=nil {
 			log.Printf("Validation failed for: %s\n", order.ID())
-			CancelOrder(order.ID(), "Insufficient funds.")
+			CancelOrder(order.ID(), err.Error())
 		}
 	}
 	go s3.UploadToS3(GetOrderbookBytes())
 }
 
 // internal user balance
-func validateBalance(order *Order) bool {
+func validateBalance(order *Order) error {
 	balance, err := db.GetUserBalance(context.TODO(), order.User())
 	if err != nil {
 		log.Println(err)
-		return false
+		return err
 	}
-	totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
+	if balance.InTransaction {
+		return errors.New("User in transaction while executing.")
+	} else {
+		totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
 	totalQuantity, _ := (order.Quantity()).Float64()
 	if order.Side() == Buy {
-		return totalPrice/global.Exchange.ETHUSD <= balance.Ether
+		if totalPrice/global.Exchange.ETHUSD <= balance.Ether {
+			return nil
+		} else{
+			return errors.New("Insufficient funds.")
+		}
 	} else {
-		return totalQuantity <= balance.Bitclout
+		if totalQuantity <= balance.Bitclout {
+			return nil
+		}else{
+			return errors.New("Insufficient funds.")
+		}
+		 
 	}
+	}
+	
 }
 
 // Order returns order by id
