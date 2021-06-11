@@ -63,8 +63,9 @@ type UserSchema struct {
 }
 
 type UserBalance struct {
-	Bitclout float64 `json:"bitclout" bson:"bitclout" binding:"-"`
-	Ether    float64 `json:"ether" bson:"ether" binding:"-"`
+	Bitclout      float64 `json:"bitclout" bson:"bitclout" binding:"-"`
+	Ether         float64 `json:"ether" bson:"ether" binding:"-"`
+	InTransaction bool    `json:"in_transaction" bson:"in_transaction" binding:"-"`
 }
 
 type UserVerification struct {

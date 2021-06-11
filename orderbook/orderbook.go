@@ -182,7 +182,6 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				executionPriceFloat, _ := executionPrice.Float64()
 				totalPrice = totalPrice.Add(executionPrice)
 				partial := PartialOrder(headOrder.ID(), quantityLeft, executionPriceFloat)
-
 				orderQueue.Update(headOrderEl, partial)
 				quantityLeft = decimal.Zero
 			} else {
@@ -193,7 +192,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				CompleteOrder(headOrder.ID(), deltaPriceFloat)
 			}
 		} else {
-			CancelOrder(headOrder.ID(),"Insufficient funds.")
+			CancelOrder(headOrder.ID(), "Insufficient funds.")
 		}
 	}
 	return
@@ -306,7 +305,7 @@ func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice 
 	err = db.PartialLimitOrder(context.TODO(), orderID, quantityProcessedFloat, totalPrice)
 	if err != nil {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
-		CancelOrder(orderID,err.Error())
+		CancelOrder(orderID, err.Error())
 	}
 	return partialOrder
 }

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -160,13 +161,18 @@ func GetUserBalance(ctx context.Context, username string) (balance *models.UserB
 		log.Println(err.Error())
 		return nil, err
 	}
-	// err = UserCollection().FindOne(ctx, bson.M{"bitclout.username": username}).Decode(&userDoc)
-	// if err != nil {
-	// 	log.Println(err.Error())
-	// 	return nil, err
-	// }
 	log.Println("done fetching balance")
 	return userDoc.Balance, nil
+}
+
+func CheckUserTransactionState(ctx context.Context, username string) (bool, error) {
+	// var userDoc *models.UserSchema
+	userDoc, err := GetUserDoc(ctx, username)
+	if err != nil {
+		log.Println(err.Error())
+		return false, err
+	}
+	return userDoc.Balance.InTransaction, nil
 }
 
 func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
@@ -182,13 +188,21 @@ func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
 
 func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
 	log.Printf("create order: %v \n", order.OrderID)
-	order.ID = primitive.NewObjectID()
-	_, err := OrderCollection().InsertOne(ctx, order)
+	inTransaction, err := CheckUserTransactionState(ctx, order.Username)
 	if err != nil {
-		log.Println(err.Error())
 		return err
 	}
-	log.Println("done creating order")
+	if inTransaction {
+		return errors.New("User in transaction.")
+	} else {
+		order.ID = primitive.NewObjectID()
+		_, err := OrderCollection().InsertOne(ctx, order)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		log.Println("done creating order")
+	}
 	return nil
 }
 
