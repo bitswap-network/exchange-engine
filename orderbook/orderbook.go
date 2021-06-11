@@ -177,7 +177,6 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 		err := validateBalance(headOrder)
 		if err == nil {
 			//partial order
-
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				// create a new order with the remaining quantity.
 				executionPrice := quantityLeft.Mul(headOrder.Price())

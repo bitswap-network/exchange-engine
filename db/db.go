@@ -153,6 +153,25 @@ func GetUserOrders(ctx context.Context, username string) ([]*models.OrderSchema,
 	return ordersArray, nil
 }
 
+func ValidateOrder(ctx context.Context, username string, orderSide string, orderQuantity float64, totalEth float64) bool {
+	log.Printf("fetching user balance from: %v\n", username)
+	// var userDoc *models.UserSchema
+	userDoc, err := GetUserDoc(ctx, username)
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+	if userDoc.Balance.InTransaction {
+		return false
+	} else {
+		if orderSide == "buy" {
+			return totalEth <= userDoc.Balance.Ether
+		} else {
+			return orderQuantity <= userDoc.Balance.Bitclout
+		}
+	}
+}
+
 func GetUserBalance(ctx context.Context, username string) (balance *models.UserBalance, err error) {
 	log.Printf("fetching user balance from: %v\n", username)
 	// var userDoc *models.UserSchema
