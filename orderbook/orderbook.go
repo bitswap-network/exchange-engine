@@ -213,7 +213,7 @@ func SanitizeUsersOrders(username string) {
 			orderList = append(orderList, orderFromState)
 		}
 	}
-	go Sanitize(orderList)
+	Sanitize(orderList)
 	return
 }
 

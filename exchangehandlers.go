@@ -27,7 +27,7 @@ func SanitizeHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
 		return
 	}
-	go orderbook.SanitizeUsersOrders(reqBody.Username)
+	orderbook.SanitizeUsersOrders(reqBody.Username)
 	c.String(http.StatusOK, "OK")
 	return
 }
