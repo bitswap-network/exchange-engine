@@ -208,7 +208,7 @@ func SanitizeUsersOrders(username string) {
 	var orderList []*Order
 	for _, order := range orders {
 		orderFromState := GetOrder(order.OrderID)
-		log.Println(orderFromState)
+		log.Println(orderFromState, order.OrderID)
 		if orderFromState != nil {
 			orderList = append(orderList, orderFromState)
 		}

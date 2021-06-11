@@ -130,9 +130,9 @@ func UpdateUserBalance(ctx context.Context, username string, bitcloutChange, eth
 	return nil
 }
 
-func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, error) {
+func GetUserOrders(ctx context.Context, username string) ([]*models.OrderSchema, error) {
 	log.Printf("fetching user orders: %v\n", username)
-	var ordersArray []models.OrderSchema
+	var ordersArray []*models.OrderSchema
 	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
 	if err != nil {
 		log.Println(err.Error())
@@ -147,7 +147,7 @@ func GetUserOrders(ctx context.Context, username string) ([]models.OrderSchema, 
 			log.Println(err)
 			return nil, err
 		}
-		ordersArray = append(ordersArray, elem)
+		ordersArray = append(ordersArray, &elem)
 	}
 	return ordersArray, nil
 }
