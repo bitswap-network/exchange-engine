@@ -35,7 +35,7 @@ func init() {
 	global.Setup()
 	s3.Setup()
 	db.Setup()
-	orderbook.Setup(false)
+	orderbook.Setup(true)
 }
 
 func RouterSetup() *gin.Engine {
@@ -82,9 +82,6 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetETHUSD)
-		// gocron.Every(5).Minutes().Do(LogDepth)
-		// gocron.Every(1).Minute().Do(s3.UploadToS3, orderbook.GetOrderbookBytes())
-		// gocron.Every(1).Minute().Do(orderbook.String)
 		<-gocron.Start()
 	}()
 
