@@ -182,14 +182,14 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				// create a new order with the remaining quantity.
 				totalPrice = totalPrice.Add(quantityLeft.Mul(headOrder.Price()))
 				partial := PartialOrder(headOrder.ID(), quantityLeft)
+				log.Printf("Partial price: %s %s", totalPrice.String(), quantityLeft.Mul(headOrder.Price()).String())
 				orderQueue.Update(headOrderEl, partial)
 				quantityLeft = decimal.Zero
-				log.Printf("Partial prices: %s %s", totalPrice.String(),quantityLeft.Mul(headOrder.Price()).String())
 			} else {
 				//full order
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
 				totalPrice = totalPrice.Add(headOrder.Quantity().Mul(headOrder.Price()))
-				log.Printf("Completes prices: %s %s", totalPrice.String(),headOrder.Quantity().Mul(headOrder.Price()).String())
+				log.Printf("Complete price: %s %s", totalPrice.String(), headOrder.Quantity().Mul(headOrder.Price()).String())
 				CompleteOrder(headOrder.ID())
 			}
 		} else {
