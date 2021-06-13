@@ -61,6 +61,8 @@ func RouterSetup() *gin.Engine {
 
 func main() {
 
+	// ethGateway, err := ethclient.Dial("https://eth-mainnet.alchemyapi.io/v2/xhIIdjrFA63X5jKpLK2mm5ZLjgy-jQaH")
+
 	gin.SetMode(config.ServerConfig.RunMode)
 
 	routersInit := RouterSetup()

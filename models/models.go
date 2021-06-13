@@ -6,6 +6,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type PoolSchema struct {
+		ID        primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"-"`
+	Active bool          `json:"active" bson:"active" binding:"required"`
+	Super int          `json:"super" bson:"super" binding:"required"`
+	Balance      float64      `json:"balance" bson:"balance" binding:"required"`
+	Address      string      `json:"address" bson:"address" binding:"required"`
+	HashedKey      string      `json:"hashedKey" bson:"hashedKey" binding:"required"`
+	ActiveStart *int64 `json:"activeStart" bson:"activeStart" binding:"-"`
+	User *primitive.ObjectID `json:"user" bson:"user,omitempty" binding:"-"`
+	TxnHashList []string `json:"txnHashList" bson:"txnHashList,omitempty" binding:"-"`
+}
+
 type EthPriceAPI struct {
 	Status  string            `json:"status"`
 	Message string            `json:"message"`

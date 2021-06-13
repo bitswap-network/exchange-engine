@@ -21,11 +21,11 @@ func SanitizeHandler(c *gin.Context) {
 	var reqBody models.UsernameRequest
 	if err := c.ShouldBindWith(&reqBody, binding.JSON); err != nil {
 		log.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if reqBody.Username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
 		return
 	}
 	orderbook.SanitizeUsersOrders(reqBody.Username)
@@ -38,7 +38,7 @@ func MarketOrderHandler(c *gin.Context) {
 	var orderSide orderbook.Side
 
 	if err := c.ShouldBindWith(&order, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -48,13 +48,13 @@ func MarketOrderHandler(c *gin.Context) {
 	} else if order.OrderSide == "sell" {
 		orderSide = orderbook.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
 	// Ensure that the order has a valid quantity
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
 
@@ -66,18 +66,18 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Fees = 0
 	estMarketPrice, err := orderbook.CalculateMarketPrice(orderSide, orderQuantity)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	estMarketPriceFloat, _ := estMarketPrice.Float64()
 	if !db.ValidateOrder(c.Request.Context(), order.Username, order.OrderSide, order.OrderQuantity, estMarketPriceFloat/global.Exchange.ETHUSD) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
 		return
 	}
 	// Attempt to create an order in the database
 	err = db.CreateOrder(c.Request.Context(), &order)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	// Attempt to Process the Market Order
@@ -85,7 +85,7 @@ func MarketOrderHandler(c *gin.Context) {
 	log.Println(quantityLeft, tradePrice, err)
 	if err != nil {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -95,19 +95,19 @@ func MarketOrderHandler(c *gin.Context) {
 	err = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, tradePriceFloat)
 	if err != nil {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	// go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
+	c.SecureJSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
 
 func LimitOrderHandler(c *gin.Context) {
 	var order models.OrderSchema
 	if err := c.ShouldBindWith(&order, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -117,7 +117,7 @@ func LimitOrderHandler(c *gin.Context) {
 	} else if order.OrderSide == "sell" {
 		orderSide = orderbook.Sell
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
 
@@ -129,12 +129,12 @@ func LimitOrderHandler(c *gin.Context) {
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	if !db.ValidateOrder(c.Request.Context(), order.Username, order.OrderSide, order.OrderQuantity, (order.OrderPrice*order.OrderQuantity)/global.Exchange.ETHUSD) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
 		return
 	}
 	err := db.CreateOrder(c.Request.Context(), &order)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -142,7 +142,7 @@ func LimitOrderHandler(c *gin.Context) {
 	orderPrice := decimal.NewFromFloat(order.OrderPrice)
 	if orderQuantity.Sign() <= 0 || orderPrice.Sign() <= 0 {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, orderbook.ErrInvalidQuantity.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": orderbook.ErrInvalidQuantity.Error()})
 		return
 	}
 
@@ -153,7 +153,7 @@ func LimitOrderHandler(c *gin.Context) {
 	log.Println(quantityLeft, totalPrice)
 	if error != nil {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 
@@ -165,7 +165,7 @@ func LimitOrderHandler(c *gin.Context) {
 			error = db.PartialLimitOrder(c.Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 			if error != nil {
 				db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
-				c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+				c.SecureJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 				return
 			}
 		}
@@ -174,12 +174,12 @@ func LimitOrderHandler(c *gin.Context) {
 		error = db.CompleteLimitOrder(c.Request.Context(), order.OrderID, totalPriceFloat)
 		if error != nil {
 			db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 			return
 		}
 	}
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.JSON(http.StatusOK, gin.H{"id": order.OrderID})
+	c.SecureJSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
 }
 
@@ -188,12 +188,12 @@ func CancelOrderHandler(c *gin.Context) {
 		ID string `json:"orderID" binding:"required"`
 	}
 	if err := c.ShouldBindWith(&orderID, binding.JSON); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cancelledOrder, err := orderbook.CancelOrder(orderID.ID, "Order Cancelled by User")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
