@@ -179,19 +179,17 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 			//partial order
 			if quantityLeft.LessThan(headOrder.Quantity()) {
 				// create a new order with the remaining quantity.
-				executionPrice := quantityLeft.Mul(headOrder.Price())
-				executionPriceFloat, _ := executionPrice.Float64()
-				totalPrice = totalPrice.Add(executionPrice)
-				partial := PartialOrder(headOrder.ID(), quantityLeft, executionPriceFloat)
+				deltaPrice := quantityLeft.Mul(headOrder.Price())
+				totalPrice = totalPrice.Add(deltaPrice)
+				partial := PartialOrder(headOrder.ID(), quantityLeft)
 				orderQueue.Update(headOrderEl, partial)
 				quantityLeft = decimal.Zero
 			} else {
 				//full order
 				deltaTotalPrice := headOrder.Quantity().Mul(headOrder.Price())
-				deltaPriceFloat, _ := deltaTotalPrice.Float64()
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())
 				totalPrice = totalPrice.Add(deltaTotalPrice)
-				CompleteOrder(headOrder.ID(), deltaPriceFloat)
+				CompleteOrder(headOrder.ID())
 			}
 		} else {
 			CancelOrder(headOrder.ID(), err.Error())
@@ -288,12 +286,12 @@ func CancelOrder(orderID string, errorString string) (*Order, error) {
 	return OB.asks.Remove(e), nil
 }
 
-func CompleteOrder(orderID string, totalPrice float64) *Order {
+func CompleteOrder(orderID string) *Order {
 	e, ok := OB.orders[orderID]
 	if !ok {
 		return nil
 	}
-	err := db.CompleteLimitOrder(context.TODO(), orderID, totalPrice)
+	err := db.CompleteLimitOrderDirect(context.TODO(), orderID)
 	if err != nil {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
 	}
@@ -306,7 +304,7 @@ func CompleteOrder(orderID string, totalPrice float64) *Order {
 	return OB.asks.Remove(e)
 }
 
-func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice float64) *Order {
+func PartialOrder(orderID string, quantityProcessed decimal.Decimal) *Order {
 	e, ok := OB.orders[orderID]
 	if !ok {
 		return nil
@@ -317,7 +315,7 @@ func PartialOrder(orderID string, quantityProcessed decimal.Decimal, totalPrice 
 		log.Fatalln(err.Error())
 	}
 	quantityProcessedFloat, _ := quantityProcessed.Float64()
-	err = db.PartialLimitOrder(context.TODO(), orderID, quantityProcessedFloat, totalPrice)
+	err = db.PartialLimitOrderDirect(context.TODO(), orderID, quantityProcessedFloat)
 	if err != nil {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
 		CancelOrder(orderID, err.Error())
