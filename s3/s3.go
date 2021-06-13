@@ -52,12 +52,12 @@ func UploadToS3(data []byte) {
 		log.Panicln(err)
 		return
 	}
-	var backupTail = "current"
-	// if config.IsTest {
-	// 	backupTail = "current-staging"
-	// } else {
-	// 	backupTail = "current"
-	// }
+	var backupTail string
+	if config.IsTest {
+		backupTail = "current-staging"
+	} else {
+		backupTail = "current"
+	}
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(Session.Bucket),
 		Key:    aws.String(fmt.Sprintf("%s-%s.json", Session.Name, backupTail)),

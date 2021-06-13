@@ -1,23 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
 	"time"
-
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/orderbook"
 )
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {
 	return fmt.Sprintf("%s-%s-%s-%v-%v", orderType, orderSide, username, quantity, created.UnixNano()/int64(time.Millisecond))
-}
-
-func LogDepth() {
-	depthMarshal, err := orderbook.DepthMarshalJSON()
-	if err != nil {
-		log.Println(err)
-	}
-	db.CreateDepthLog(context.TODO(), depthMarshal)
 }

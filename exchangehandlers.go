@@ -61,6 +61,8 @@ func MarketOrderHandler(c *gin.Context) {
 	order.OrderType = "market"
 	order.Created = time.Now().UTC()
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
+	order.OrderQuantityProcessed = 0
+	order.Fees = 0
 	estMarketPrice, err := orderbook.CalculateMarketPrice(orderSide, orderQuantity)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -78,11 +80,11 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	// Attempt to Process the Market Order
-	quantityLeft, totalPrice, error := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
-	log.Println(quantityLeft, totalPrice)
-	if error != nil {
-		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+	quantityLeft, totalPrice, err := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
+	log.Println(quantityLeft, totalPrice, err)
+	if err != nil {
+		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -122,6 +124,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Created = time.Now().UTC()
 	order.Complete = false
 	order.OrderQuantityProcessed = 0
+	order.Fees = 0
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 
 	if !db.ValidateOrder(c.Request.Context(), order.Username, order.OrderSide, order.OrderQuantity, (order.OrderPrice*order.OrderQuantity)/global.Exchange.ETHUSD) {

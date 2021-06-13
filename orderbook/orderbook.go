@@ -186,6 +186,7 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				orderQueue.Update(headOrderEl, partial)
 				quantityLeft = decimal.Zero
 			} else {
+				//full order
 				deltaTotalPrice := headOrder.Quantity().Mul(headOrder.Price())
 				deltaPriceFloat, _ := deltaTotalPrice.Float64()
 				quantityLeft = quantityLeft.Sub(headOrder.Quantity())

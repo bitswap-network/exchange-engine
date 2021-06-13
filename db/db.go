@@ -163,6 +163,8 @@ func ValidateOrder(ctx context.Context, username string, orderSide string, order
 	}
 	if userDoc.Balance.InTransaction {
 		return false
+	} else if orderQuantity > 500 || orderQuantity <= 0 {
+		return false
 	} else {
 		if orderSide == "buy" {
 			return totalEth <= userDoc.Balance.Ether
@@ -192,17 +194,6 @@ func CheckUserTransactionState(ctx context.Context, username string) (bool, erro
 		return false, err
 	}
 	return userDoc.Balance.InTransaction, nil
-}
-
-func CreateDepthLog(ctx context.Context, depthLog *models.DepthSchema) error {
-	log.Println("create depth log")
-	_, err := DepthCollection().InsertOne(ctx, depthLog)
-	if err != nil {
-		log.Printf("Could not create depth log: %v", err)
-		return err
-	}
-	log.Println("done creating depth log")
-	return nil
 }
 
 func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
@@ -265,7 +256,7 @@ func CancelCompleteOrder(ctx context.Context, orderID string, errorString string
 	return nil
 }
 
-func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) error {
+func CompleteLimitOrder(ctx context.Context, orderID string, totalPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 
 	log.Printf("fulfill: %v\n", orderID)
@@ -277,14 +268,16 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 		return err
 	}
 
-	var bitcloutChange, etherChange float64
+	var bitcloutChange, etherChange, fees float64
 	//update ether USD price var
 	if orderDoc.OrderSide == "buy" {
-		bitcloutChange = (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) - ((orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) * global.Exchange.FEE)
-		etherChange = -(execPrice / ETHUSD)
+		fees = ((orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) * global.Exchange.FEE)
+		bitcloutChange = (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) - fees
+		etherChange = -(totalPrice / ETHUSD)
 	} else {
+		fees = (totalPrice * global.Exchange.FEE) / ETHUSD
 		bitcloutChange = -(orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed)
-		etherChange = (execPrice - (execPrice * global.Exchange.FEE)) / ETHUSD
+		etherChange = (totalPrice / ETHUSD) - fees
 	}
 
 	// attempt to modify bitclout balance and eth balance
@@ -299,8 +292,8 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 		"orderQuantityProcessed": orderDoc.OrderQuantity,
 		"complete":               true,
 		"completeTime":           time.Now().UTC(),
-		"execPrice":              (execPrice / (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed)),
-	}}
+		"execPrice":              (totalPrice / (orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed)),
+	}, "$inc": bson.M{"fees": fees}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -309,7 +302,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, execPrice float64) 
 	return nil
 }
 
-func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, execPrice float64) error {
+func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProcessed float64, totalPrice float64) error {
 	ETHUSD := global.Exchange.ETHUSD
 	log.Printf("partial fulfill: %v - %v\n", orderID, partialQuantityProcessed)
 	var orderDoc *models.OrderSchema
@@ -320,17 +313,15 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 		return err
 	}
 
-	var bitcloutChange, etherChange float64
+	var bitcloutChange, etherChange, fees float64
 	if orderDoc.OrderSide == "buy" {
-		bitcloutChange = partialQuantityProcessed - (partialQuantityProcessed * global.Exchange.FEE)
-		// bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-		etherChange = -execPrice / ETHUSD
-		// etherBalanceUpdated = userDoc.Balance.Ether + etherChange
+		fees = partialQuantityProcessed * global.Exchange.FEE
+		bitcloutChange = partialQuantityProcessed - fees
+		etherChange = -totalPrice / ETHUSD
 	} else {
+		fees = (totalPrice * global.Exchange.FEE) / ETHUSD
 		bitcloutChange = -partialQuantityProcessed
-		// bitcloutBalanceUpdated = userDoc.Balance.Bitclout + bitcloutChange
-		etherChange = (execPrice - (execPrice * global.Exchange.FEE)) / ETHUSD
-		// etherBalanceUpdated = userDoc.Balance.Ether + etherChange
+		etherChange = (totalPrice / ETHUSD) - fees
 	}
 
 	// attempt to modify bitclout balance and eth balance
@@ -341,7 +332,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, partialQuantityProce
 	}
 
 	// Mark the order as complete after bitclout and eth balances are modified
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed, "execPrice": (execPrice / partialQuantityProcessed)}}
+	update := bson.M{"$set": bson.M{"orderQuantityProcessed": partialQuantityProcessed, "execPrice": (totalPrice / partialQuantityProcessed)}, "$inc": bson.M{"fees": fees}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -365,14 +356,15 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 		log.Println("Couldn't find the user\n" + err.Error())
 		return err
 	}
-	var bitcloutChange, etherChange float64
-
+	var bitcloutChange, etherChange, fees float64
 	if orderDoc.OrderSide == "buy" {
-		bitcloutChange = quantityProcessed - (quantityProcessed * global.Exchange.FEE)
+		fees = (quantityProcessed * global.Exchange.FEE)
+		bitcloutChange = quantityProcessed - fees
 		etherChange = -totalPrice / ETHUSD
 	} else {
+		fees = (totalPrice * global.Exchange.FEE) / ETHUSD
 		bitcloutChange = -quantityProcessed
-		etherChange = (totalPrice - (totalPrice * global.Exchange.FEE)) / ETHUSD
+		etherChange = (totalPrice / ETHUSD) - fees
 	}
 
 	err = UpdateUserBalance(ctx, orderDoc.Username, bitcloutChange, etherChange)
@@ -382,7 +374,7 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 	}
 
 	// Mark the order as complete after bitclout and eth balances are modified
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": quantityProcessed, "execPrice": (totalPrice / quantityProcessed), "complete": true, "completeTime": time.Now().UTC()}}
+	update := bson.M{"$inc": bson.M{"fees": fees}, "$set": bson.M{"orderQuantityProcessed": quantityProcessed, "execPrice": (totalPrice / quantityProcessed), "complete": true, "completeTime": time.Now().UTC()}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
