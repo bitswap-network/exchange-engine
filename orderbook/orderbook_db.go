@@ -69,7 +69,6 @@ func validateBalance(order *Order, checkInTransaction bool) error {
 	}
 }
 
-
 // CancelOrder removes order with given ID from the order book
 func CancelOrder(orderID string, errorString string) (*Order, error) {
 	e, ok := OB.orders[orderID]
