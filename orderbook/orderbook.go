@@ -29,7 +29,7 @@ var OB = &OrderBook{}
 Initializes the orderbook
 
 Arguments:
-	blank - Whether the orderbook is empty. If true, the orderbook is retrieved from the s3 bucket.
+	blank - Whether the orderbook is empty. If false, the orderbook is retrieved from the s3 bucket.
 */
 func Setup(blank bool) {
 	log.Println("orderbook setup")
