@@ -297,11 +297,10 @@ func CompleteOrder(orderID string) *Order {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
 	}
 	delete(OB.orders, orderID)
-
+	go s3.UploadToS3(GetOrderbookBytes())
 	if e.Value.(*Order).Side() == Buy {
 		return OB.bids.Remove(e)
 	}
-	go s3.UploadToS3(GetOrderbookBytes())
 	return OB.asks.Remove(e)
 }
 
