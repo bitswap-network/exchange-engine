@@ -19,7 +19,7 @@ import (
 
 func SanitizeHandler(c *gin.Context) {
 	var reqBody models.UsernameRequest
-	if err := c.ShouldBindBodyWith(&reqBody, binding.JSON); err != nil {
+	if err := c.ShouldBindWith(&reqBody, binding.JSON); err != nil {
 		log.Print(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -35,13 +35,14 @@ func SanitizeHandler(c *gin.Context) {
 
 func MarketOrderHandler(c *gin.Context) {
 	var order models.OrderSchema
+	var orderSide orderbook.Side
+
 	if err := c.ShouldBindWith(&order, binding.JSON); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Ensure that the orderSide is "buy" or "sell"
-	var orderSide orderbook.Side
 	if order.OrderSide == "buy" {
 		orderSide = orderbook.Buy
 	} else if order.OrderSide == "sell" {
@@ -80,18 +81,18 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	// Attempt to Process the Market Order
-	quantityLeft, totalPrice, err := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
-	log.Println(quantityLeft, totalPrice, err)
+	quantityLeft, tradePrice, err := orderbook.ProcessMarketOrder(orderSide, orderQuantity)
+	log.Println(quantityLeft, tradePrice, err)
 	if err != nil {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// give the current order's issuer orderQuantity - quantityLeft
-	totalPriceFloat, _ := totalPrice.Float64()
+	// give the current order's issuer `orderQuantity - quantityLeft` (equivalent value as `tradePrice`)
+	tradePriceFloat, _ := tradePrice.Float64()
 	quantityLeftFloat, _ := quantityLeft.Float64()
-	err = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
+	err = db.MarketOrder(context.TODO(), order.OrderID, order.OrderQuantity-quantityLeftFloat, tradePriceFloat)
 	if err != nil {
 		db.CancelCompleteOrder(c.Request.Context(), order.OrderID, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -156,9 +157,11 @@ func LimitOrderHandler(c *gin.Context) {
 		return
 	}
 
+	// If there is remaining quantity in the received order
 	if quantityLeft.IsPositive() {
+		// If the received order partially fulfilled orders
 		if quantityLeft != orderQuantity {
-			// partially fulfilled
+			// Create a Partial Order for the remaining
 			error = db.PartialLimitOrder(c.Request.Context(), order.OrderID, order.OrderQuantity-quantityLeftFloat, totalPriceFloat)
 			if error != nil {
 				db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())
@@ -167,6 +170,7 @@ func LimitOrderHandler(c *gin.Context) {
 			}
 		}
 	} else {
+		// The received order was exhausted - it fulfilled orders in the orderbook
 		error = db.CompleteLimitOrder(c.Request.Context(), order.OrderID, totalPriceFloat)
 		if error != nil {
 			db.CancelCompleteOrder(c.Request.Context(), order.OrderID, error.Error())

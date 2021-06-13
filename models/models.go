@@ -38,7 +38,7 @@ type OrderSchema struct {
 	Created                time.Time          `json:"created" bson:"created,omitempty" binding:"-"`
 	OrderID                string             `json:"orderID" bson:"orderID" binding:"-"`
 	OrderSide              string             `json:"orderSide" bson:"orderSide" binding:"required"`
-	OrderType              string             `json:"orderType" bson:"orderType" binding:"-"`
+	OrderType              string             `json:"orderType" bson:"orderType" binding:"required"`
 	Fees                   float64            `json:"fees" bson:"fees" binding:"-"`
 	OrderQuantity          float64            `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
 	OrderPrice             float64            `json:"orderPrice,omitempty" bson:"orderPrice,omitempty" binding:"-"`
