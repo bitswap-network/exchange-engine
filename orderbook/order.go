@@ -1,16 +1,12 @@
 package orderbook
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/models"
 )
 
 // Order strores information about request
@@ -31,33 +27,14 @@ Arguments:
 	timestamp - The time at which the order was created
 	update - Whether to update the database with the order. If update is false, no database calls are created
 */
-func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timestamp time.Time, update bool) (*Order, error) {
-
-	if update {
-		quantFloat, _ := quantity.Float64()
-		priceFloat, _ := price.Float64()
-
-		dbOrder := &models.OrderSchema{
-			OrderID:                orderID,
-			OrderSide:              side.String(),
-			OrderQuantityProcessed: quantFloat,
-			OrderPrice:             priceFloat,
-			Created:                timestamp,
-		}
-		err := db.UpdateOrder(context.TODO(), dbOrder)
-		if err != nil {
-			log.Fatalln(err.Error())
-			return nil, err
-		}
-	}
-
+func NewOrder(orderID string, side Side, quantity, price decimal.Decimal, timestamp time.Time) *Order {
 	return &Order{
 		id:        orderID,
 		side:      side,
 		quantity:  quantity,
 		price:     price,
 		timestamp: timestamp,
-	}, nil
+	}
 }
 
 // func UpdateOrder(orderID string) (*Order, error) {

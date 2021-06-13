@@ -78,6 +78,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 	if quantity.Sign() <= 0 {
 		return decimal.Zero, decimal.Zero, ErrInvalidQuantity
 	}
+	quantityToTrade := quantity
 	// fullPrice = decimal.Zero
 	var (
 		iter          func() *OrderQueue
@@ -92,13 +93,13 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 		sideToProcess = OB.bids
 	}
 
-	for quantity.Sign() > 0 && sideToProcess.Len() > 0 {
+	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 {
 		bestPrice := iter()
-		quantityLeft, totalPrice := processQueue(bestPrice, quantity)
+		quantityLeft, totalPrice := processQueue(bestPrice, quantityToTrade)
 		fullPrice = fullPrice.Add(totalPrice)
-		quantity = quantityLeft
+		quantityToTrade = quantityLeft
 	}
-	quantityLeft = quantity
+	quantityLeft = quantityToTrade
 	return
 }
 
@@ -118,7 +119,7 @@ func ProcessMarketOrder(side Side, quantity decimal.Decimal) (quantityLeft decim
 //                partial done and placed to the orderbook without full quantity - partial will contain
 //                your order with quantity to left
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (quantityToTrade decimal.Decimal, totalPrice decimal.Decimal, err error) {
+func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (quantityToTrade decimal.Decimal, fullPrice decimal.Decimal, err error) {
 	if _, ok := OB.orders[orderID]; ok {
 		return decimal.Zero, decimal.Zero, ErrOrderExists
 	}
@@ -132,7 +133,6 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 	}
 
 	quantityToTrade = quantity
-	// quantityLeft = quantityToTrade
 	var (
 		sideToProcess *OrderSide
 		sideToAdd     *OrderSide
@@ -151,19 +151,19 @@ func ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decima
 		comparator = price.LessThanOrEqual
 		iter = OB.bids.MaxPriceQueue
 	}
+
 	bestPrice := iter()
 	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		quantityToTrade, totalPrice = processQueue(bestPrice, quantityToTrade)
+		quantityLeft, totalPrice := processQueue(bestPrice, quantityToTrade)
+		fullPrice = fullPrice.Add(totalPrice)
+		quantityToTrade = quantityLeft
 		bestPrice = iter()
 	}
 
+	//If the given order has exhausted the price depth
 	if quantityToTrade.Sign() > 0 {
-		o, err := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC(), quantity != quantityToTrade)
-		if err != nil {
-			log.Println(err.Error())
-		} else {
-			OB.orders[orderID] = sideToAdd.Append(o)
-		}
+		o := NewOrder(orderID, side, quantityToTrade, price, time.Now().UTC())
+		OB.orders[orderID] = sideToAdd.Append(o)
 	}
 
 	return
@@ -271,19 +271,18 @@ func GetOrder(orderID string) *Order {
 // CancelOrder removes order with given ID from the order book
 func CancelOrder(orderID string, errorString string) (*Order, error) {
 	e, ok := OB.orders[orderID]
-	if !ok {
-		return nil, ErrOrderNotExists
-	}
 	err := db.CancelCompleteOrder(context.TODO(), orderID, errorString)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, err
+	}
+	if !ok {
+		return nil, ErrOrderNotExists
 	}
 	delete(OB.orders, orderID)
+	go s3.UploadToS3(GetOrderbookBytes())
 	if e.Value.(*Order).Side() == Buy {
 		return OB.bids.Remove(e), nil
 	}
-	go s3.UploadToS3(GetOrderbookBytes())
 	return OB.asks.Remove(e), nil
 }
 
@@ -294,33 +293,32 @@ func CompleteOrder(orderID string) *Order {
 	}
 	err := db.CompleteLimitOrderDirect(context.TODO(), orderID)
 	if err != nil {
-		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
+		go db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
 	}
 	delete(OB.orders, orderID)
-
+	go s3.UploadToS3(GetOrderbookBytes())
 	if e.Value.(*Order).Side() == Buy {
 		return OB.bids.Remove(e)
 	}
-	go s3.UploadToS3(GetOrderbookBytes())
 	return OB.asks.Remove(e)
 }
 
-func PartialOrder(orderID string, quantityProcessed decimal.Decimal) *Order {
-	e, ok := OB.orders[orderID]
+func PartialOrder(orderID string, quantityDelta decimal.Decimal) *Order {
+	headOrder, ok := OB.orders[orderID]
 	if !ok {
 		return nil
 	}
-	order := e.Value.(*Order)
-	partialOrder, err := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityProcessed), order.Price(), time.Now().UTC(), true)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	quantityProcessedFloat, _ := quantityProcessed.Float64()
-	err = db.PartialLimitOrderDirect(context.TODO(), orderID, quantityProcessedFloat)
+	// Fulfills an order for `quantityDelta`
+	quantityDeltaFloat, _ := quantityDelta.Float64()
+	err := db.PartialLimitOrderDirect(context.TODO(), orderID, quantityDeltaFloat)
 	if err != nil {
 		db.CancelCompleteOrder(context.TODO(), orderID, err.Error())
 		CancelOrder(orderID, err.Error())
 	}
+	// Updates the headOrder to set the REMAINING QUANTITY to add to the OrderBook
+	order := headOrder.Value.(*Order)
+	partialOrder := NewOrder(orderID, order.Side(), order.Quantity().Sub(quantityDelta), order.Price(), order.Time())
+
 	return partialOrder
 }
 
@@ -378,27 +376,6 @@ func MarshalJSON() ([]byte, error) {
 		},
 	)
 }
-
-// func Depth() (asks, bids []*PriceLevel) {
-// 	level := OB.asks.MaxPriceQueue()
-// 	for level != nil {
-// 		asks = append(asks, &PriceLevel{
-// 			Price:    level.Price(),
-// 			Quantity: level.Volume(),
-// 		})
-// 		level = OB.asks.LessThan(level.Price())
-// 	}
-
-// 	level = OB.bids.MaxPriceQueue()
-// 	for level != nil {
-// 		bids = append(bids, &PriceLevel{
-// 			Price:    level.Price(),
-// 			Quantity: level.Volume(),
-// 		})
-// 		level = OB.bids.LessThan(level.Price())
-// 	}
-// 	return
-// }
 
 func GetOrderbookBytes() (data []byte) {
 	data, err := MarshalJSON()
