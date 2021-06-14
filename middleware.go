@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"os"
 
+	"exchange-engine/config"
+	"exchange-engine/fireeye"
+
 	"github.com/gin-gonic/gin"
-	"v1.1-fulfiller/config"
 )
 
 // func createHandshake(message string) string {
@@ -29,6 +31,17 @@ import (
 // 	messageTimeNonce
 // }
 
+func fireEyeGate() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if fireeye.FireEye.Code >= 20 {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
+			return
+		} else {
+			c.Next()
+		}
+	}
+}
+
 func validateHMAC(signature, data []byte) bool {
 	authKey := os.Getenv("SERVER_AUTH")
 	mac := hmac.New(sha256.New, []byte(authKey))
@@ -38,7 +51,6 @@ func validateHMAC(signature, data []byte) bool {
 }
 
 func internalServerAuth() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		if !config.IsTest {
 			signature, ok := c.Request.Header["Server-Signature"]
@@ -51,6 +63,7 @@ func internalServerAuth() gin.HandlerFunc {
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(messageBuffer))
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
 			}
 			if validateHMAC([]byte(signature[0]), messageBuffer) {
 				c.Next()

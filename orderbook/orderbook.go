@@ -6,9 +6,10 @@ import (
 	"log"
 	"time"
 
+	"exchange-engine/models"
+	"exchange-engine/s3"
+
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/models"
-	"v1.1-fulfiller/s3"
 )
 
 // OrderBook implements standard matching algorithm
@@ -189,7 +190,9 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				CompleteOrder(headOrder.ID())
 			}
 		} else {
-			CancelOrder(headOrder.ID(), err.Error())
+			if err = CancelOrder(headOrder.ID(), err.Error()); err != nil {
+				log.Println(err.Error())
+			}
 		}
 	}
 	return

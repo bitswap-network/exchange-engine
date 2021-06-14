@@ -6,11 +6,12 @@ import (
 	"os"
 	"testing"
 
+	global "exchange-engine/global"
+	ob "exchange-engine/orderbook"
+
 	unitTest "github.com/Valiben/gin_unit_test"
 	utils "github.com/Valiben/gin_unit_test/utils"
 	"github.com/shopspring/decimal"
-	global "v1.1-fulfiller/global"
-	ob "v1.1-fulfiller/orderbook"
 )
 
 func init() {

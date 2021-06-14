@@ -3,4 +3,4 @@ build:
     - go
 
 run:
-  web: v1.1-fulfiller
+  web: exchange-engine

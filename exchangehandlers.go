@@ -7,15 +7,20 @@ import (
 	"net/http"
 	"time"
 
+	"exchange-engine/db"
+	"exchange-engine/global"
+	"exchange-engine/models"
+	"exchange-engine/orderbook"
+	"exchange-engine/s3"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/models"
-	"v1.1-fulfiller/orderbook"
-	"v1.1-fulfiller/s3"
 )
+
+func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {
+	return fmt.Sprintf("%s-%s-%s-%v-%v", orderType, orderSide, username, quantity, created.UnixNano()/int64(time.Millisecond))
+}
 
 func SanitizeHandler(c *gin.Context) {
 	var reqBody models.UsernameRequest
@@ -193,12 +198,11 @@ func CancelOrderHandler(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrder, err := orderbook.CancelOrder(orderID.ID, "Order Cancelled by User")
-	if err != nil {
+	if err := orderbook.CancelOrder(orderID.ID, "Order Cancelled by User"); err != nil {
 		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.String(http.StatusOK, fmt.Sprintf("Cancelled order: %s", cancelledOrder.ID()))
+	c.String(http.StatusOK, fmt.Sprintf("Cancelled order: %s", orderID))
 	return
 }

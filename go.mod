@@ -1,4 +1,4 @@
-module v1.1-fulfiller
+module exchange-engine
 
 go 1.16
 

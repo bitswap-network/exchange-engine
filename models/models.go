@@ -6,6 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type CurrencyAmounts struct {
+	Bitclout float64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
+	Ether    float64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+}
+
 type PoolSchema struct {
 	ID          primitive.ObjectID  `json:"_id" bson:"_id,omitempty" binding:"-"`
 	Active      bool                `json:"active" bson:"active" binding:"required"`
@@ -16,6 +21,14 @@ type PoolSchema struct {
 	ActiveStart *int64              `json:"activeStart" bson:"activeStart" binding:"-"`
 	User        *primitive.ObjectID `json:"user" bson:"user,omitempty" binding:"-"`
 	TxnHashList []string            `json:"txnHashList" bson:"txnHashList,omitempty" binding:"-"`
+}
+
+type GetUsersStateLessResponse struct {
+	Userlist []*UserList `json:"UserList"`
+}
+
+type UserList struct {
+	BalanceNanos int64 `json:"BalanceNanos"`
 }
 
 type EthPriceAPI struct {

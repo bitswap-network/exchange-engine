@@ -5,11 +5,18 @@ import (
 	"log"
 	"net/http"
 
+	"exchange-engine/fireeye"
+	"exchange-engine/global"
+	"exchange-engine/orderbook"
+
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/orderbook"
 )
+
+func FireEyeStatusHandler(c *gin.Context) {
+	c.SecureJSON(http.StatusOK, gin.H{"Code": fireeye.FireEye.Code, "Message": fireeye.FireEye.Message})
+	return
+}
 
 func GetMarketPriceHandler(c *gin.Context) {
 	quantityParam := c.Param("quantity")

@@ -9,17 +9,19 @@ import (
 	"syscall"
 	"time"
 
+	"exchange-engine/config"
+	"exchange-engine/db"
+	"exchange-engine/fireeye"
+	"exchange-engine/global"
+	"exchange-engine/orderbook"
+	"exchange-engine/s3"
+
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jasonlvhit/gocron"
 	"github.com/joho/godotenv"
-	"v1.1-fulfiller/config"
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/orderbook"
-	"v1.1-fulfiller/s3"
 )
 
 func rootHandler(c *gin.Context) {
@@ -42,10 +44,12 @@ func RouterSetup() *gin.Engine {
 	router := gin.Default()
 	router.Use(cors.Default())
 	router.Use(helmet.Default())
+	router.Use(fireEyeGate())
 	router.GET("/", rootHandler)
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
 	router.GET("/ethusd", GetETHUSDHandler)
 	router.GET("/orderbook-state", GetCurrentDepthHandler)
+	router.GET("/fireeye-state", FireEyeStatusHandler)
 
 	//Debug mode bypasses server auth
 	exchangeRouter := router.Group("/exchange", internalServerAuth())
@@ -84,6 +88,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetETHUSD)
+		gocron.Every(10).Seconds().Do(fireeye.SyncStatus, context.Background())
 		<-gocron.Start()
 	}()
 
