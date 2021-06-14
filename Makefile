@@ -1,6 +1,6 @@
 GO_BUILD_ENV := CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 DOCKER_BUILD=$(shell pwd)/.docker_build
-DOCKER_CMD=$(DOCKER_BUILD)/v1.1-fulfiller
+DOCKER_CMD=$(DOCKER_BUILD)/exchange-engine
 
 $(DOCKER_CMD): clean
 	mkdir -p $(DOCKER_BUILD)

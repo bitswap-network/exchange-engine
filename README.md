@@ -1,7 +1,8 @@
-# golang-fulfiller
+# exchange-engine
 
 ## Local Usage
+
 - clone repo to your local %GOPATH%/src
-- cd into v1.1-fulfiller
+- cd into exchange-engine
 - $go mod download
-- $go run . 
+- $go run .

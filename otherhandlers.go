@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 
+	"exchange-engine/global"
+	"exchange-engine/orderbook"
+
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/orderbook"
 )
 
 func GetMarketPriceHandler(c *gin.Context) {

@@ -6,13 +6,15 @@ import (
 	"log"
 	"time"
 
+	"exchange-engine/models"
+	"exchange-engine/s3"
+
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/models"
-	"v1.1-fulfiller/s3"
 )
 
 // OrderBook implements standard matching algorithm
 type OrderBook struct {
+	
 	orders map[string]*list.Element // orderID -> *Order (*list.Element.Value.(*Order))
 
 	asks *OrderSide

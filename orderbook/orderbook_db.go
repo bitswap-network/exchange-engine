@@ -5,10 +5,11 @@ import (
 	"errors"
 	"log"
 
+	"exchange-engine/db"
+	"exchange-engine/global"
+	"exchange-engine/s3"
+
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/s3"
 )
 
 func SanitizeUsersOrders(username string) {

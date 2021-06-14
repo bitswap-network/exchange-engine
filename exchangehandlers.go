@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"time"
 
+	"exchange-engine/db"
+	"exchange-engine/global"
+	"exchange-engine/models"
+	"exchange-engine/orderbook"
+	"exchange-engine/s3"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/shopspring/decimal"
-	"v1.1-fulfiller/db"
-	"v1.1-fulfiller/global"
-	"v1.1-fulfiller/models"
-	"v1.1-fulfiller/orderbook"
-	"v1.1-fulfiller/s3"
 )
 
 func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {

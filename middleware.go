@@ -5,13 +5,16 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
+	"exchange-engine/config"
+	"exchange-engine/fireeye"
+
 	"github.com/gin-gonic/gin"
-	"v1.1-fulfiller/config"
 )
 
 // func createHandshake(message string) string {
@@ -29,6 +32,16 @@ import (
 // 	messageTimeNonce
 // }
 
+func fireEyeGate() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if fireeye.FireEye.Code > 20 {
+			c.AbortWithError(http.StatusInternalServerError,errors.New(fireeye.FireEye.Message))
+		}else{
+			c.Next()
+		}
+	}
+}
+
 func validateHMAC(signature, data []byte) bool {
 	authKey := os.Getenv("SERVER_AUTH")
 	mac := hmac.New(sha256.New, []byte(authKey))
@@ -38,7 +51,6 @@ func validateHMAC(signature, data []byte) bool {
 }
 
 func internalServerAuth() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		if !config.IsTest {
 			signature, ok := c.Request.Header["Server-Signature"]
