@@ -71,7 +71,6 @@ func CheckUserTransactionState(ctx context.Context, username string) (bool, erro
 }
 
 func GetUserOrders(ctx context.Context, username string) ([]*models.OrderSchema, error) {
-	log.Printf("fetching user orders: %v\n", username)
 	var ordersArray []*models.OrderSchema
 	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
 	if err != nil {
@@ -93,7 +92,6 @@ func GetUserOrders(ctx context.Context, username string) ([]*models.OrderSchema,
 }
 
 func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
-	log.Printf("fetching total balances: \n")
 	var totalBalances *models.CurrencyAmounts
 
 	balanceAggregateStage := bson.D{

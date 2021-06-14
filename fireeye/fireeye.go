@@ -3,6 +3,7 @@ package fireeye
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 
@@ -34,24 +35,29 @@ const initBcltTolerance = -156.90016130600003
 const initEthTolerance = 24.346454580232383
 
 func SyncStatus(ctx context.Context) {
+
 	totalBalance, err := db.GetTotalBalances(ctx)
 	if err != nil {
+		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
 	totalFees, err := db.GetOrderFees(ctx)
 	if err != nil {
+		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
 	getUsersSLReqMap := map[string][]string{"PublicKeysBase58Check":config.Wallet.Addr_BCLT}
 	getUsersSLReqBody, err := json.Marshal(getUsersSLReqMap)
 	if err != nil {
+		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
 	getUserSLResp := new(models.GetUsersStateLessResponse)
 	if err := global.PostJson("https://bitclout.com/api/v0/get-users-stateless",getUsersSLReqBody,getUserSLResp); err != nil {
+		SetSyncWarn(err)
 		log.Panic("ERROR getusersstateless: ", err)
 		return
 	}
@@ -61,6 +67,7 @@ func SyncStatus(ctx context.Context) {
 	}
 	pools, err := db.GetAllPools(ctx)
 	if err != nil {
+		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
@@ -75,10 +82,10 @@ func SyncStatus(ctx context.Context) {
 
 	if (math.Abs((bitcloutSync/walletBcltBalance)-1)>MaxTolerance) {
 		FireEye.Code = 30
-		FireEye.Message = "..."
+		FireEye.Message = fmt.Sprintf("Bitclout balance out of sync.")
 	}else if (math.Abs((etherSync/walletEthBalance)-1)>MaxTolerance) {
 		FireEye.Code = 31
-		FireEye.Message = "..."
+		FireEye.Message = fmt.Sprintf("Ether balance out of sync.")
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
@@ -87,3 +94,7 @@ func SyncStatus(ctx context.Context) {
 	return
 }
 
+func SetSyncWarn(err error) {
+	FireEye.Code = 10
+	FireEye.Message = err.Error()
+}

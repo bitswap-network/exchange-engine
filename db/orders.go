@@ -18,7 +18,6 @@ import (
 
 
 func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
-	log.Printf("fetching order fees: \n")
 	var totalFees *models.CurrencyAmounts
 
 	bitcloutMatchStage := bson.D{
