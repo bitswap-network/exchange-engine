@@ -33,12 +33,17 @@ import (
 
 func fireEyeGate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if fireeye.FireEye.Code >= 20 {
-			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
-			return
+		if !config.IsTest {
+			if fireeye.FireEye.Code >= 20 {
+				c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
+				return
+			} else {
+				c.Next()
+			}
 		} else {
 			c.Next()
 		}
+
 	}
 }
 
