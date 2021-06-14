@@ -222,31 +222,6 @@ func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
 	return nil
 }
 
-func IncrementOrderQP(ctx context.Context, orderID string, quantityRemaining float64) error {
-	log.Printf("updating order: %v\n", orderID)
-	filter := bson.M{"orderID": orderID}
-	update := bson.M{"$set": bson.M{"orderQuantityProcessed": quantityRemaining}}
-	_, err := OrderCollection().UpdateOne(ctx, filter, update)
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
-	log.Println("done creating order")
-	return nil
-}
-
-func UpdateOrderPrice(ctx context.Context, orderID string, orderPrice float64) error {
-	log.Printf("update order price: %v\n", orderID)
-
-	update := bson.M{"$set": bson.M{"orderPrice": orderPrice}}
-	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func CancelCompleteOrder(ctx context.Context, orderID string, errorString string) error {
 	log.Printf("cancel complete: %v\n", orderID)
 
@@ -297,7 +272,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, totalPrice float64)
 		"complete":               true,
 		"completeTime":           time.Now().UTC(),
 		"execPrice":              execPrice,
-	}, "$inc": bson.M{"fees": fees}}
+	}, "$inc": bson.M{"fees": fees, "etherQuantity": (totalPrice / ETHUSD)}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -343,7 +318,7 @@ func CompleteLimitOrderDirect(ctx context.Context, orderID string) error {
 		"complete":               true,
 		"completeTime":           time.Now().UTC(),
 		"execPrice":              orderDoc.OrderPrice,
-	}, "$inc": bson.M{"fees": fees}}
+	}, "$inc": bson.M{"fees": fees, "etherChange": (((orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) * orderDoc.OrderPrice) / ETHUSD)}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -383,7 +358,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, quantityDelta float6
 	}
 	execPrice := (orderDoc.ExecPrice*orderDoc.OrderQuantityProcessed + totalPrice) / (quantityDelta + orderDoc.OrderQuantityProcessed)
 	// Mark the order as complete after bitclout and eth balances are modified
-	update := bson.M{"$set": bson.M{"execPrice": execPrice}, "$inc": bson.M{"fees": fees, "orderQuantityProcessed": quantityDelta}}
+	update := bson.M{"$set": bson.M{"execPrice": execPrice}, "$inc": bson.M{"fees": fees, "orderQuantityProcessed": quantityDelta, "etherQuantity": (totalPrice / ETHUSD)}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -422,7 +397,7 @@ func PartialLimitOrderDirect(ctx context.Context, orderID string, quantityDelta 
 
 	// Mark the order as complete after bitclout and eth balances are modified
 	// INCREMENT the `orderQuantityProcessed` to reflect the partial quantity processed
-	update := bson.M{"$set": bson.M{"execPrice": orderDoc.OrderPrice}, "$inc": bson.M{"fees": fees, "orderQuantityProcessed": quantityDelta}}
+	update := bson.M{"$set": bson.M{"execPrice": orderDoc.OrderPrice}, "$inc": bson.M{"fees": fees, "orderQuantityProcessed": quantityDelta, "etherQuantity": ((quantityDelta * orderDoc.OrderPrice) / ETHUSD)}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
@@ -458,7 +433,7 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 	}
 
 	// Mark the order as complete after bitclout and eth balances are modified
-	update := bson.M{"$set": bson.M{"fees": fees, "orderQuantityProcessed": quantityProcessed, "execPrice": (totalPrice / quantityProcessed), "complete": true, "completeTime": time.Now().UTC()}}
+	update := bson.M{"$set": bson.M{"etherQuantity": (totalPrice / ETHUSD), "fees": fees, "orderQuantityProcessed": quantityProcessed, "execPrice": (totalPrice / quantityProcessed), "complete": true, "completeTime": time.Now().UTC()}}
 	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err

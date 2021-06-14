@@ -63,6 +63,7 @@ func MarketOrderHandler(c *gin.Context) {
 	order.Created = time.Now().UTC()
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 	order.OrderQuantityProcessed = 0
+	order.EtherQuantity = 0
 	order.Fees = 0
 	estMarketPrice, err := orderbook.CalculateMarketPrice(orderSide, orderQuantity)
 	if err != nil {
@@ -125,6 +126,7 @@ func LimitOrderHandler(c *gin.Context) {
 	order.Created = time.Now().UTC()
 	order.Complete = false
 	order.OrderQuantityProcessed = 0
+	order.EtherQuantity = 0
 	order.Fees = 0
 	order.OrderID = OrderIDGen(order.OrderType, order.OrderSide, order.Username, order.OrderQuantity, order.Created)
 

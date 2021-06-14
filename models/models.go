@@ -52,6 +52,7 @@ type OrderSchema struct {
 	OrderSide              string             `json:"orderSide" bson:"orderSide" binding:"required"`
 	OrderType              string             `json:"orderType" bson:"orderType" binding:"-"`
 	Fees                   float64            `json:"fees" bson:"fees" binding:"-"`
+	EtherQuantity          float64            `json:"etherQuantity" bson:"etherQuantity" binding:"-"`
 	OrderQuantity          float64            `json:"orderQuantity" bson:"orderQuantity" binding:"required"`
 	OrderPrice             float64            `json:"orderPrice,omitempty" bson:"orderPrice,omitempty" binding:"-"`
 	ExecPrice              float64            `json:"execPrice,omitempty" bson:"execPrice,omitempty" binding:"-"`
