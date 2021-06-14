@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"math"
 
@@ -89,32 +88,31 @@ func SyncStatus(ctx context.Context) {
 
 	if bitcloutDeviation > MaxTolerance && etherDeviation > MaxTolerance {
 		FireEye.Code = 33
-		FireEye.Message = fmt.Sprintf("Bitclout and ether balance out of sync (MAX TOLERANCE).")
+		FireEye.Message = "Bitclout and ether balance out of sync (MAX TOLERANCE)."
 	} else if bitcloutDeviation > MaxTolerance || etherDeviation > MaxTolerance {
 		if bitcloutDeviation > MaxTolerance {
 			FireEye.Code = 32
-			FireEye.Message = fmt.Sprintf("Bitclout balance out of sync (MAX TOLERANCE).")
+			FireEye.Message = "Bitclout balance out of sync (MAX TOLERANCE)."
 		} else {
 			FireEye.Code = 31
-			FireEye.Message = fmt.Sprintf("Ether balance out of sync (MAX TOLERANCE).")
+			FireEye.Message = "Ether balance out of sync (MAX TOLERANCE)."
 		}
 	} else if bitcloutDeviation > MidTolerance && etherDeviation > MidTolerance {
 		FireEye.Code = 13
-		FireEye.Message = fmt.Sprintf("Bitclout and ether balance out of sync (MID TOLERANCE).")
+		FireEye.Message = "Bitclout and ether balance out of sync (MID TOLERANCE)."
 	} else if bitcloutDeviation > MidTolerance || etherDeviation > MidTolerance {
 		if bitcloutDeviation > MidTolerance {
 			FireEye.Code = 12
-			FireEye.Message = fmt.Sprintf("Bitclout balance out of sync (MID TOLERANCE).")
+			FireEye.Message = "Bitclout balance out of sync (MID TOLERANCE)."
 		} else {
 			FireEye.Code = 11
-			FireEye.Message = fmt.Sprintf("Ether balance out of sync (MID TOLERANCE).")
+			FireEye.Message ="Ether balance out of sync (MID TOLERANCE)."
 		}
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
 	}
 	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n",FireEye.Code,FireEye.Message,bitcloutDeviation,etherDeviation)
-	return
 }
 
 func SetSyncWarn(err error) {

@@ -190,7 +190,9 @@ func processQueue(orderQueue *OrderQueue, quantityToTrade decimal.Decimal) (quan
 				CompleteOrder(headOrder.ID())
 			}
 		} else {
-			CancelOrder(headOrder.ID(), err.Error())
+			if err = CancelOrder(headOrder.ID(), err.Error()); err != nil {
+				log.Println(err.Error())
+			}
 		}
 	}
 	return

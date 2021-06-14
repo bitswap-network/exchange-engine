@@ -71,21 +71,23 @@ func validateBalance(order *Order, checkInTransaction bool) error {
 }
 
 // CancelOrder removes order with given ID from the order book
-func CancelOrder(orderID string, errorString string) (*Order, error) {
+func CancelOrder(orderID string, errorString string) error {
 	e, ok := OB.orders[orderID]
 	err := db.CancelCompleteOrder(context.TODO(), orderID, errorString)
 	if err != nil {
 		log.Println(err.Error())
 	}
 	if !ok {
-		return nil, ErrOrderNotExists
+		return  ErrOrderNotExists
 	}
 	delete(OB.orders, orderID)
 	go s3.UploadToS3(GetOrderbookBytes())
 	if e.Value.(*Order).Side() == Buy {
-		return OB.bids.Remove(e), nil
+		OB.bids.Remove(e)
+		return nil
 	}
-	return OB.asks.Remove(e), nil
+	OB.asks.Remove(e)
+	return nil
 }
 
 func CompleteOrder(orderID string) *Order {

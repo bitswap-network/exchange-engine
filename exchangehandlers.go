@@ -198,12 +198,11 @@ func CancelOrderHandler(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cancelledOrder, err := orderbook.CancelOrder(orderID.ID, "Order Cancelled by User")
-	if err != nil {
+	if err := orderbook.CancelOrder(orderID.ID, "Order Cancelled by User"); err != nil {
 		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
-	c.String(http.StatusOK, fmt.Sprintf("Cancelled order: %s", cancelledOrder.ID()))
+	c.String(http.StatusOK, fmt.Sprintf("Cancelled order: %s", orderID))
 	return
 }
