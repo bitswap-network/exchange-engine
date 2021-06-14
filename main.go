@@ -50,7 +50,7 @@ func RouterSetup() *gin.Engine {
 	router.GET("/orderbook-state", GetCurrentDepthHandler)
 
 	//Debug mode bypasses server auth
-	exchangeRouter := router.Group("/exchange", internalServerAuth())
+	exchangeRouter := router.Group("/exchange", fireEyeGate(),internalServerAuth())
 	exchangeRouter.POST("/market", MarketOrderHandler)
 	exchangeRouter.POST("/limit", LimitOrderHandler)
 	exchangeRouter.POST("/cancel", CancelOrderHandler)
