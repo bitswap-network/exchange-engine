@@ -28,7 +28,6 @@ var FireEye = &FireEyeT{
 	Code:    20,
 }
 
-const OKTolerance = 0.0001 // 0.001% Tolerance
 const MidTolerance = 0.001 // 0.1% Tolerance
 const MaxTolerance = 0.01  //1% Tolerance
 
@@ -36,7 +35,7 @@ const initBcltTolerance = -156.90016130600003
 const initEthTolerance = 24.346454580232383
 
 func SyncStatus(ctx context.Context) {
-
+	
 	totalBalance, err := db.GetTotalBalances(ctx)
 	if err != nil {
 		SetSyncWarn(err)
@@ -63,14 +62,14 @@ func SyncStatus(ctx context.Context) {
 		return
 	}
 	// We should only retrieve our single BitClout wallet account
-	if len(getUserSLResp.Userlist) != 1 {
+	if len(getUserSLResp.Userlist) != len(config.Wallet.Addr_BCLT) {
 		SetSyncWarn(errors.New("could not find the Wallet BitClout Account"))
 		log.Panic("ERROR getusersstateless UserList too small")
 	}
-	var walletBcltBalance float64 = float64(getUserSLResp.Userlist[0].BalanceNanos) / 1e9
-	// for _, balance := range getUserSLResp.Userlist {
-	// 	walletBcltBalance += float64(balance.BalanceNanos) / 1e9
-	// }
+	var walletBcltBalance float64 = 0
+	for _, balance := range getUserSLResp.Userlist {
+		walletBcltBalance += float64(balance.BalanceNanos) / 1e9
+	}
 	pools, err := db.GetAllPools(ctx)
 	if err != nil {
 		SetSyncWarn(err)
@@ -85,18 +84,36 @@ func SyncStatus(ctx context.Context) {
 		bitcloutSync = totalBalance.Bitclout + totalFees.Bitclout + initBcltTolerance
 		etherSync    = totalBalance.Ether + totalFees.Ether + initEthTolerance
 	)
+	bitcloutDeviation := math.Abs((bitcloutSync / walletBcltBalance) - 1)
+	etherDeviation := math.Abs((etherSync / walletEthBalance) - 1)
 
-	if math.Abs((bitcloutSync/walletBcltBalance)-1) > MaxTolerance {
-		FireEye.Code = 30
-		FireEye.Message = fmt.Sprintf("Bitclout balance out of sync.")
-	} else if math.Abs((etherSync/walletEthBalance)-1) > MaxTolerance {
-		FireEye.Code = 31
-		FireEye.Message = fmt.Sprintf("Ether balance out of sync.")
+	if bitcloutDeviation > MaxTolerance && etherDeviation > MaxTolerance {
+		FireEye.Code = 33
+		FireEye.Message = fmt.Sprintf("Bitclout and ether balance out of sync (MAX TOLERANCE).")
+	} else if bitcloutDeviation > MaxTolerance || etherDeviation > MaxTolerance {
+		if bitcloutDeviation > MaxTolerance {
+			FireEye.Code = 32
+			FireEye.Message = fmt.Sprintf("Bitclout balance out of sync (MAX TOLERANCE).")
+		} else {
+			FireEye.Code = 31
+			FireEye.Message = fmt.Sprintf("Ether balance out of sync (MAX TOLERANCE).")
+		}
+	} else if bitcloutDeviation > MidTolerance && etherDeviation > MidTolerance {
+		FireEye.Code = 13
+		FireEye.Message = fmt.Sprintf("Bitclout and ether balance out of sync (MID TOLERANCE).")
+	} else if bitcloutDeviation > MidTolerance || etherDeviation > MidTolerance {
+		if bitcloutDeviation > MidTolerance {
+			FireEye.Code = 12
+			FireEye.Message = fmt.Sprintf("Bitclout balance out of sync (MID TOLERANCE).")
+		} else {
+			FireEye.Code = 11
+			FireEye.Message = fmt.Sprintf("Ether balance out of sync (MID TOLERANCE).")
+		}
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
 	}
-	log.Println(FireEye)
+	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n",FireEye.Code,FireEye.Message,bitcloutDeviation,etherDeviation)
 	return
 }
 

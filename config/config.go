@@ -9,7 +9,7 @@ import (
 
 type WalletStruct struct {
 	Addr_BCLT []string
-	Addr_ETH []string
+	Addr_ETH  []string
 }
 
 var Wallet = &WalletStruct{}
@@ -79,8 +79,8 @@ func Setup() {
 	S3Config.LogName = "orderbook"
 	S3Config.Bucket = envMap["BUCKET"]
 	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
-	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT,"BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
-	
+	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
+
 	log.Println("config setup complete")
 }
 

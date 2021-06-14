@@ -54,8 +54,8 @@ func GetJson(url string, target interface{}) error {
 	return nil
 }
 
-func PostJson(url string,data []byte, target interface{}) error {
-	r, err := http.Post(url,"application/json",bytes.NewBuffer(data))
+func PostJson(url string, data []byte, target interface{}) error {
+	r, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -34,9 +33,10 @@ import (
 
 func fireEyeGate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if fireeye.FireEye.Code > 20 {
-			c.AbortWithError(http.StatusInternalServerError,errors.New(fireeye.FireEye.Message))
-		}else{
+		if fireeye.FireEye.Code >= 20 {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
+			return
+		} else {
 			c.Next()
 		}
 	}
@@ -63,6 +63,7 @@ func internalServerAuth() gin.HandlerFunc {
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(messageBuffer))
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
 			}
 			if validateHMAC([]byte(signature[0]), messageBuffer) {
 				c.Next()

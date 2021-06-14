@@ -14,7 +14,6 @@ import (
 
 // OrderBook implements standard matching algorithm
 type OrderBook struct {
-	
 	orders map[string]*list.Element // orderID -> *Order (*list.Element.Value.(*Order))
 
 	asks *OrderSide

@@ -8,7 +8,7 @@ import (
 
 type CurrencyAmounts struct {
 	Bitclout float64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
-	Ether float64`json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+	Ether    float64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
 }
 
 type PoolSchema struct {

@@ -15,14 +15,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
-
 func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	var totalFees *models.CurrencyAmounts
 
 	bitcloutMatchStage := bson.D{
-		{"$match",bson.D{
-			{"orderSide","buy"},
+		{"$match", bson.D{
+			{"orderSide", "buy"},
 		}},
 	}
 	bitcloutGroupStage := bson.D{
@@ -34,7 +32,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 		}},
 	}
 	opts := options.Aggregate().SetMaxTime(2 * time.Second)
-	cursor, err := OrderCollection().Aggregate(ctx, mongo.Pipeline{bitcloutMatchStage,bitcloutGroupStage}, opts)
+	cursor, err := OrderCollection().Aggregate(ctx, mongo.Pipeline{bitcloutMatchStage, bitcloutGroupStage}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +46,8 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	}
 
 	etherMatchStage := bson.D{
-		{"$match",bson.D{
-			{"orderSide","sell"},
+		{"$match", bson.D{
+			{"orderSide", "sell"},
 		}},
 	}
 	etherGroupStage := bson.D{
@@ -60,7 +58,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 			}},
 		}},
 	}
-	cursor, err = OrderCollection().Aggregate(ctx, mongo.Pipeline{etherMatchStage,etherGroupStage}, opts)
+	cursor, err = OrderCollection().Aggregate(ctx, mongo.Pipeline{etherMatchStage, etherGroupStage}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +69,9 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	bsonBytes, _ = bson.Marshal(resultsEth[0])
 	if err = bson.Unmarshal(bsonBytes, &totalFees); err != nil {
 		return nil, err
-	}	
+	}
 	return totalFees, nil
 }
-
 
 func ValidateOrder(ctx context.Context, username string, orderSide string, orderQuantity float64, totalEth float64) bool {
 	log.Printf("fetching user balance from: %v\n", username)

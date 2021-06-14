@@ -8,13 +8,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-
-
 func GetAllPools(ctx context.Context) ([]*models.PoolSchema, error) {
-	log.Printf("fetching pool balances: \n")
 	var poolsArray []*models.PoolSchema
-	
-	cursor, err := PoolCollections().Find(ctx,bson.D{})
+
+	cursor, err := PoolCollections().Find(ctx, bson.D{})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

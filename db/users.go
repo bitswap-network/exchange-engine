@@ -114,12 +114,12 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err = cursor.All(ctx, &results); err != nil {
 		return nil, err
 	}
-	
+
 	bsonBytes, _ := bson.Marshal(results[0])
 	err = bson.Unmarshal(bsonBytes, &totalBalances)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return totalBalances, nil
 }
