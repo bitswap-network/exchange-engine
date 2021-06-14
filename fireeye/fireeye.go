@@ -1,0 +1,5 @@
+package fireeye
+
+func SyncStatus() {
+
+}
