@@ -34,7 +34,7 @@ const initBcltTolerance = -156.90016130600003
 const initEthTolerance = 24.346454580232383
 
 func SyncStatus(ctx context.Context) {
-	
+
 	totalBalance, err := db.GetTotalBalances(ctx)
 	if err != nil {
 		SetSyncWarn(err)
@@ -106,13 +106,13 @@ func SyncStatus(ctx context.Context) {
 			FireEye.Message = "Bitclout balance out of sync (MID TOLERANCE)."
 		} else {
 			FireEye.Code = 11
-			FireEye.Message ="Ether balance out of sync (MID TOLERANCE)."
+			FireEye.Message = "Ether balance out of sync (MID TOLERANCE)."
 		}
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
 	}
-	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n",FireEye.Code,FireEye.Message,bitcloutDeviation,etherDeviation)
+	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
 }
 
 func SetSyncWarn(err error) {

@@ -88,7 +88,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetETHUSD)
-		gocron.Every(5).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(10).Seconds().Do(fireeye.SyncStatus, context.Background())
 		<-gocron.Start()
 	}()
 

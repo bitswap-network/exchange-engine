@@ -78,7 +78,7 @@ func CancelOrder(orderID string, errorString string) error {
 		log.Println(err.Error())
 	}
 	if !ok {
-		return  ErrOrderNotExists
+		return ErrOrderNotExists
 	}
 	delete(OB.orders, orderID)
 	go s3.UploadToS3(GetOrderbookBytes())
