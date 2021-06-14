@@ -21,11 +21,11 @@ Arguments:
 	username - The username of the user you are searching for
 	userDoc - The struct to hold the user document
 */
-func GetUserDoc(ctx context.Context, username string) (*models.UserSchema, error) {
+func GetUserDoc(ctx context.Context, publicKey string) (*models.UserSchema, error) {
 	var userDoc *models.UserSchema
-	err := UserCollection().FindOne(ctx, bson.M{"bitclout.username": username}).Decode(&userDoc)
+	err := UserCollection().FindOne(ctx, bson.M{"bitclout.publicKey": publicKey}).Decode(&userDoc)
 	if err != nil {
-		log.Printf("Could not find user: %v\n"+err.Error(), username)
+		log.Printf("Could not find user: %v\n"+err.Error(), publicKey)
 		return nil, err
 	}
 	return userDoc, nil
@@ -36,22 +36,22 @@ Updates a user's BitClout and Ether balances by `bitcloutChange` and `etherChang
 
 One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE POSITIVE.
 */
-func UpdateUserBalance(ctx context.Context, username string, bitcloutChange, etherChange float64) error {
+func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, etherChange float64) error {
 	if (bitcloutChange > 0) == (etherChange > 0) {
 		return errors.New("Both `bitcloutChange` and `etherChange` cannot be positive or negative")
 	}
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
-	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.username": username}, update)
+	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetUserBalance(ctx context.Context, username string) (balance *models.UserBalance, err error) {
-	log.Printf("fetching user balance from: %v\n", username)
+func GetUserBalance(ctx context.Context, publicKey string) (balance *models.UserBalance, err error) {
+	log.Printf("fetching user balance from: %v\n", publicKey)
 	// var userDoc *models.UserSchema
-	userDoc, err := GetUserDoc(ctx, username)
+	userDoc, err := GetUserDoc(ctx, publicKey)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -60,9 +60,9 @@ func GetUserBalance(ctx context.Context, username string) (balance *models.UserB
 	return userDoc.Balance, nil
 }
 
-func CheckUserTransactionState(ctx context.Context, username string) (bool, error) {
+func CheckUserTransactionState(ctx context.Context, publicKey string) (bool, error) {
 	// var userDoc *models.UserSchema
-	userDoc, err := GetUserDoc(ctx, username)
+	userDoc, err := GetUserDoc(ctx, publicKey)
 	if err != nil {
 		log.Println(err.Error())
 		return false, err
@@ -70,9 +70,9 @@ func CheckUserTransactionState(ctx context.Context, username string) (bool, erro
 	return userDoc.Balance.InTransaction, nil
 }
 
-func GetUserOrders(ctx context.Context, username string) ([]*models.OrderSchema, error) {
+func GetUserOrders(ctx context.Context, publicKey string) ([]*models.OrderSchema, error) {
 	var ordersArray []*models.OrderSchema
-	cursor, err := OrderCollection().Find(ctx, bson.M{"username": username, "complete": false})
+	cursor, err := OrderCollection().Find(ctx, bson.M{"username": publicKey, "complete": false})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

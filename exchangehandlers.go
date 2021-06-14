@@ -18,22 +18,22 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func OrderIDGen(orderType string, orderSide string, username string, quantity float64, created time.Time) (orderID string) {
-	return fmt.Sprintf("%s-%s-%s-%v-%v", orderType, orderSide, username, quantity, created.UnixNano()/int64(time.Millisecond))
+func OrderIDGen(orderType string, orderSide string, publicKey string, quantity float64, created time.Time) (orderID string) {
+	return fmt.Sprintf("%s-%s-%s-%v-%v", orderType, orderSide, publicKey, quantity, created.UnixNano()/int64(time.Millisecond))
 }
 
 func SanitizeHandler(c *gin.Context) {
-	var reqBody models.UsernameRequest
+	var reqBody models.SanitizeRequest
 	if err := c.ShouldBindWith(&reqBody, binding.JSON); err != nil {
 		log.Print(err)
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if reqBody.Username == "" {
-		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "Invalid Username"})
+	if reqBody.PublicKey == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "Invalid Public Key"})
 		return
 	}
-	orderbook.SanitizeUsersOrders(reqBody.Username)
+	orderbook.SanitizeUsersOrders(reqBody.PublicKey)
 	c.String(http.StatusOK, "OK")
 	return
 }

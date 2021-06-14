@@ -12,8 +12,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func SanitizeUsersOrders(username string) {
-	orders, err := db.GetUserOrders(context.TODO(), username)
+func SanitizeUsersOrders(publicKey string) {
+	orders, err := db.GetUserOrders(context.TODO(), publicKey)
 	if err != nil {
 		log.Println(err)
 		return

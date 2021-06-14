@@ -73,10 +73,10 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	return totalFees, nil
 }
 
-func ValidateOrder(ctx context.Context, username string, orderSide string, orderQuantity float64, totalEth float64) bool {
-	log.Printf("fetching user balance from: %v\n", username)
+func ValidateOrder(ctx context.Context, publicKey string, orderSide string, orderQuantity float64, totalEth float64) bool {
+	log.Printf("fetching user balance from: %v\n", publicKey)
 	// var userDoc *models.UserSchema
-	userDoc, err := GetUserDoc(ctx, username)
+	userDoc, err := GetUserDoc(ctx, publicKey)
 	if err != nil {
 		log.Println(err.Error())
 		return false

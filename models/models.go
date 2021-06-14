@@ -43,8 +43,8 @@ type EthPriceAPIResult struct {
 	Ethusd_timestamp string `json:"ethusd_timestamp"`
 }
 
-type UsernameRequest struct {
-	Username string `json:"username" bson:"username" binding:"required"`
+type SanitizeRequest struct {
+	PublicKey string `json:"publicKey" bson:"publicKey" binding:"required"`
 }
 
 type DepthSchema struct {
