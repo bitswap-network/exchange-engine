@@ -31,7 +31,7 @@ const MidTolerance = 0.001 // 0.1% Tolerance
 const MaxTolerance = 0.01  //1% Tolerance
 
 const initBcltTolerance = -157.90016130600003
-const initEthTolerance = 24.2405776
+const initEthTolerance = 24.2486902
 
 func SyncStatus(ctx context.Context) {
 
