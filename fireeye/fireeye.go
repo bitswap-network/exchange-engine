@@ -112,7 +112,7 @@ func SyncStatus(ctx context.Context) {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
 	}
-	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
+	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 }
 
 func SetSyncWarn(err error) {
