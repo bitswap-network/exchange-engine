@@ -30,8 +30,8 @@ var FireEye = &FireEyeT{
 const MidTolerance = 0.001 // 0.1% Tolerance
 const MaxTolerance = 0.01  //1% Tolerance
 
-const initBcltTolerance = -157.90016130600003
-const initEthTolerance = 24.2486902
+const initBcltTolerance = -158.750162
+const initEthTolerance = 21.7474157
 
 func SyncStatus(ctx context.Context) {
 
