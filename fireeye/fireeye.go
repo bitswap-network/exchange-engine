@@ -28,7 +28,7 @@ var FireEye = &FireEyeT{
 }
 
 const MidTolerance = 0.001 // 0.1% Tolerance
-const MaxTolerance = 0.01  //1% Tolerance
+const MaxTolerance = 0.005  //0.5% Tolerance
 
 const initBcltTolerance = -159.230163
 const initEthTolerance = 11.8801843
