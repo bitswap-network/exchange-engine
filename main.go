@@ -67,6 +67,9 @@ func main() {
 
 	// ethGateway, err := ethclient.Dial("https://eth-mainnet.alchemyapi.io/v2/xhIIdjrFA63X5jKpLK2mm5ZLjgy-jQaH")
 
+	// Enable line numbers in logging
+	log.SetFlags(log.Lshortfile)
+
 	gin.SetMode(config.ServerConfig.RunMode)
 
 	routersInit := RouterSetup()
