@@ -101,7 +101,7 @@ func ValidateOrder(ctx context.Context, publicKey string, orderSide string, orde
 		log.Println(err.Error())
 		return false
 	}
-	if userDoc.Balance.InTransaction || orderQuantity > 500 || orderQuantity <= 0  {
+	if userDoc.Balance.InTransaction || orderQuantity > 500 || orderQuantity <= 0 {
 		return false
 	} else {
 		if orderSide == "buy" {
@@ -118,16 +118,18 @@ func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
 	if err != nil {
 		return err
 	}
-	numOrders, err := GetActiveOrders(ctx, order.Username)
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
 	if inTransaction {
 		return errors.New("user in transaction")
 	}
-	if numOrders >= 10 {
-		return errors.New("max active orders reached")
+	if order.OrderType == "limit" {
+		numOrders, err := GetActiveOrders(ctx, order.Username)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		if numOrders >= 10 {
+			return errors.New("max active orders reached")
+		}
 	} else {
 		order.ID = primitive.NewObjectID()
 		_, err := OrderCollection().InsertOne(ctx, order)
