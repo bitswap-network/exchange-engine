@@ -38,7 +38,7 @@ One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE PO
 */
 func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, etherChange float64) error {
 	if (bitcloutChange > 0) == (etherChange > 0) {
-		return errors.New("Both `bitcloutChange` and `etherChange` cannot be positive or negative")
+		return errors.New("both `bitcloutChange` and `etherChange` cannot be positive or negative")
 	}
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
