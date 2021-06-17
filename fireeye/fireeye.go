@@ -30,8 +30,8 @@ var FireEye = &FireEyeT{
 const MidTolerance = 0.001 // 0.1% Tolerance
 const MaxTolerance = 0.01  //1% Tolerance
 
-const initBcltTolerance = -156.90016130600003
-const initEthTolerance = 24.346454580232383
+const initBcltTolerance = -158.750162
+const initEthTolerance = 11.9689164
 
 func SyncStatus(ctx context.Context) {
 
@@ -89,30 +89,36 @@ func SyncStatus(ctx context.Context) {
 	if bitcloutDeviation > MaxTolerance && etherDeviation > MaxTolerance {
 		FireEye.Code = 33
 		FireEye.Message = "Bitclout and ether balance out of sync (MAX TOLERANCE)."
+		log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 	} else if bitcloutDeviation > MaxTolerance || etherDeviation > MaxTolerance {
 		if bitcloutDeviation > MaxTolerance {
 			FireEye.Code = 32
 			FireEye.Message = "Bitclout balance out of sync (MAX TOLERANCE)."
+			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 		} else {
 			FireEye.Code = 31
 			FireEye.Message = "Ether balance out of sync (MAX TOLERANCE)."
+			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 		}
 	} else if bitcloutDeviation > MidTolerance && etherDeviation > MidTolerance {
 		FireEye.Code = 13
 		FireEye.Message = "Bitclout and ether balance out of sync (MID TOLERANCE)."
+		log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 	} else if bitcloutDeviation > MidTolerance || etherDeviation > MidTolerance {
 		if bitcloutDeviation > MidTolerance {
 			FireEye.Code = 12
 			FireEye.Message = "Bitclout balance out of sync (MID TOLERANCE)."
+			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 		} else {
 			FireEye.Code = 11
 			FireEye.Message = "Ether balance out of sync (MID TOLERANCE)."
+			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync - initBcltTolerance, walletBcltBalance,etherSync - initEthTolerance, walletEthBalance)
 		}
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
 	}
-	log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
+	
 }
 
 func SetSyncWarn(err error) {
