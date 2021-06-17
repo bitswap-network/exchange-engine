@@ -130,15 +130,15 @@ func CreateOrder(ctx context.Context, order *models.OrderSchema) error {
 		if numOrders >= 10 {
 			return errors.New("max active orders reached")
 		}
-	} else {
-		order.ID = primitive.NewObjectID()
-		_, err := OrderCollection().InsertOne(ctx, order)
-		if err != nil {
-			log.Println(err.Error())
-			return err
-		}
-		log.Println("done creating order")
 	}
+	order.ID = primitive.NewObjectID()
+	_, err = OrderCollection().InsertOne(ctx, order)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	log.Println("done creating order")
+
 	return nil
 }
 
