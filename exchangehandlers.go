@@ -104,7 +104,7 @@ func MarketOrderHandler(c *gin.Context) {
 		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// go orderbook.SanitizeUsersOrders(order.Username)
+	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.SecureJSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
@@ -185,6 +185,7 @@ func LimitOrderHandler(c *gin.Context) {
 			return
 		}
 	}
+	go orderbook.SanitizeUsersOrders(order.Username)
 	go s3.UploadToS3(orderbook.GetOrderbookBytes())
 	c.SecureJSON(http.StatusOK, gin.H{"id": order.OrderID})
 	return
