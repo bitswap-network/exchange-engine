@@ -23,7 +23,7 @@ var Exchange = &ExchangeRate{}
 
 func Setup() {
 	log.Println("global setup")
-	Exchange.FEE = 0.02
+	Exchange.FEE = 0.01
 	SetETHUSD()
 	log.Println("global setup complete")
 }
