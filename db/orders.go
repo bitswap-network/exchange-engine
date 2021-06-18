@@ -351,8 +351,7 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 	log.Printf("Fulfilling market order `%s` - Processed: %v\n", orderID, quantityProcessed)
 	var orderDoc *models.OrderSchema
 
-	err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc)
-	if err != nil {
+	if err := OrderCollection().FindOne(ctx, bson.M{"orderID": orderID}).Decode(&orderDoc); err != nil {
 		log.Printf("Error fetching order `%s`: \n"+err.Error(), orderID)
 		return err
 	}
@@ -363,15 +362,14 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 
 	log.Printf("bitChange: %v, etherChange: %v\n", bitcloutChange, etherChange)
 
-	err = UpdateUserBalance(ctx, orderDoc.Username, bitcloutChange, etherChange)
-	if err != nil {
+	if err := UpdateUserBalance(ctx, orderDoc.Username, bitcloutChange, etherChange); err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
 	// Mark the order as complete after bitclout and eth balances are modified
 	update := bson.M{"$set": bson.M{"etherQuantity": (totalPrice / ETHUSD), "fees": fees, "orderQuantityProcessed": quantityProcessed, "execPrice": (totalPrice / quantityProcessed), "complete": true, "completeTime": time.Now().UTC()}}
-	_, err = OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
+	_, err := OrderCollection().UpdateOne(ctx, bson.M{"orderID": orderID}, update)
 	if err != nil {
 		return err
 	}
