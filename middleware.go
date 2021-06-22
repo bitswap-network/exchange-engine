@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 
-	"exchange-engine/config"
 	"exchange-engine/fireeye"
 
 	"github.com/gin-gonic/gin"
@@ -33,13 +32,9 @@ import (
 
 func fireEyeGate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if config.DatabaseConfig.DatabaseName == "production" {
-			if fireeye.FireEye.Code >= 20 {
-				c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
-				return
-			} else {
-				c.Next()
-			}
+		if fireeye.FireEye.Code >= 20 {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": fireeye.FireEye.Message})
+			return
 		} else {
 			c.Next()
 		}
@@ -57,27 +52,23 @@ func validateHMAC(signature, data []byte) bool {
 
 func internalServerAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !config.IsTest {
-			signature, ok := c.Request.Header["Server-Signature"]
-			if !ok {
-				c.AbortWithStatus(http.StatusBadRequest)
-				return
-			}
-			messageBuffer, err := ioutil.ReadAll(c.Request.Body)
-			log.Println(string(messageBuffer))
-			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(messageBuffer))
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			if validateHMAC([]byte(signature[0]), messageBuffer) {
-				c.Next()
-			} else {
-				c.AbortWithStatus(http.StatusUnauthorized)
-				return
-			}
-		} else {
+		signature, ok := c.Request.Header["Server-Signature"]
+		if !ok {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		messageBuffer, err := ioutil.ReadAll(c.Request.Body)
+		log.Println(string(messageBuffer))
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(messageBuffer))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if validateHMAC([]byte(signature[0]), messageBuffer) {
 			c.Next()
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 	}
 }
