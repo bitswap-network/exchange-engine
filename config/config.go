@@ -83,7 +83,7 @@ func Setup() {
 	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
 	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
 	if IsTest {
-		Wallet.InitBcltTolerance = -109.230163
+		Wallet.InitBcltTolerance = -381.830163
 		Wallet.InitEthTolerance = 0.864276231
 	} else {
 		Wallet.InitBcltTolerance = -109.230163
