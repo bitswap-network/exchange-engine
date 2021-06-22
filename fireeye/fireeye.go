@@ -80,8 +80,8 @@ func SyncStatus(ctx context.Context) {
 		walletEthBalance += pool.Balance
 	}
 	var (
-		bitcloutSync = totalBalance.Bitclout + totalFees.Bitclout + initBcltTolerance
-		etherSync    = totalBalance.Ether + totalFees.Ether + initEthTolerance
+		bitcloutSync = totalBalance.Bitclout + totalFees.Bitclout + config.Wallet.InitBcltTolerance
+		etherSync    = totalBalance.Ether + totalFees.Ether + config.Wallet.InitEthTolerance
 	)
 	bitcloutDeviation := math.Abs((bitcloutSync / walletBcltBalance) - 1)
 	etherDeviation := math.Abs((etherSync / walletEthBalance) - 1)

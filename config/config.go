@@ -8,8 +8,10 @@ import (
 )
 
 type WalletStruct struct {
-	Addr_BCLT []string
-	Addr_ETH  []string
+	Addr_BCLT         []string
+	Addr_ETH          []string
+	InitBcltTolerance float64
+	InitEthTolerance  float64
 }
 
 var Wallet = &WalletStruct{}
@@ -80,6 +82,13 @@ func Setup() {
 	S3Config.Bucket = envMap["BUCKET"]
 	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
 	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
+	if IsTest {
+		Wallet.InitBcltTolerance = -159.230163
+		Wallet.InitEthTolerance = 0.864276231
+	} else {
+		Wallet.InitBcltTolerance = -159.230163
+		Wallet.InitEthTolerance = 10.8421526
+	}
 
 	log.Println("config setup complete")
 }
