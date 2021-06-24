@@ -51,6 +51,7 @@ type S3 struct {
 var S3Config = &S3{}
 
 func Setup() {
+
 	log.Println("config setup")
 	envMap := getEnvMap(os.Environ(), func(item string) (key, val string) {
 		splits := strings.Split(item, "=")
@@ -69,6 +70,7 @@ func Setup() {
 	} else {
 		IsTest = true
 	}
+
 	ServerConfig.ReadTimeout = 60 * time.Second
 	ServerConfig.WriteTimeout = 60 * time.Second
 	DatabaseConfig.AWSKey = envMap["MONGODB_USERNAME"]
@@ -82,11 +84,12 @@ func Setup() {
 	S3Config.Bucket = envMap["BUCKET"]
 	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
 	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
+
 	if IsTest {
-		Wallet.InitBcltTolerance = -109.430163
+		Wallet.InitBcltTolerance = -111.184163
 		Wallet.InitEthTolerance = 0.864276231
 	} else {
-		Wallet.InitBcltTolerance = -111.230163
+		Wallet.InitBcltTolerance = -111.184163
 		Wallet.InitEthTolerance = 10.8421526
 	}
 
