@@ -52,7 +52,7 @@ func SyncStatus(ctx context.Context) {
 		return
 	}
 	getUserSLResp := new(models.GetUsersStateLessResponse)
-	if err := global.PostJson("https://bitclout.com/api/v0/get-users-stateless", getUsersSLReqBody, getUserSLResp); err != nil {
+	if err := global.PostJson("http://node.bitswap.network/api/v0/get-users-stateless", getUsersSLReqBody, getUserSLResp); err != nil {
 		SetSyncWarn(err)
 		log.Panic("ERROR getusersstateless: ", err)
 		return
