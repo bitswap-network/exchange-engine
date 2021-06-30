@@ -244,6 +244,43 @@ func CalculateMarketPrice(side Side, quantity decimal.Decimal) (price decimal.De
 	return
 }
 
+// CalculateMarketPrice returns total market price for requested quantity
+// if err is not nil price returns total price of all levels in side
+func CalculateMarketQuantity(side Side, maxPrice decimal.Decimal) (quantity decimal.Decimal, err error) {
+	quantity = decimal.Zero
+	var (
+		level *OrderQueue
+		iter  func(decimal.Decimal) *OrderQueue
+	)
+
+	if side == Buy {
+		level = OB.asks.MinPriceQueue()
+		iter = OB.asks.GreaterThan
+	} else {
+		level = OB.bids.MaxPriceQueue()
+		iter = OB.bids.LessThan
+	}
+
+	for maxPrice.Sign() > 0 && level != nil {
+		levelVolume := level.Volume()
+		levelPrice := level.Price()
+		log.Println(levelPrice, levelVolume)
+		if maxPrice.GreaterThanOrEqual(levelPrice.Mul(levelVolume)) {
+			quantity = quantity.Add(levelVolume)
+			maxPrice = maxPrice.Sub(levelPrice.Mul(levelVolume))
+			level = iter(levelPrice)
+		} else {
+			quantity = quantity.Add(maxPrice.Div(levelPrice))
+			maxPrice = decimal.Zero
+		}
+	}
+
+	if maxPrice.Sign() > 0 {
+		err = ErrInsufficientQuantity
+	}
+	return
+}
+
 // String implements fmt.Stringer interface
 func String() string {
 	return OB.asks.String() + "\r\n------------------------------------" + OB.bids.String()

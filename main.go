@@ -47,6 +47,7 @@ func RouterSetup() *gin.Engine {
 	router.Use(fireEyeGate())
 	router.GET("/", rootHandler)
 	router.GET("/market-price/:side/:quantity", GetMarketPriceHandler)
+	router.GET("/market-quantity/:side/:maxPrice", GetMarketQuantityHandler)
 	router.GET("/ethusd", GetETHUSDHandler)
 	router.GET("/orderbook-state", GetCurrentDepthHandler)
 	router.GET("/fireeye-state", FireEyeStatusHandler)

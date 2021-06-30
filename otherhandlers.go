@@ -49,6 +49,37 @@ func GetMarketPriceHandler(c *gin.Context) {
 	return
 }
 
+func GetMarketQuantityHandler(c *gin.Context) {
+	maxPriceParam := c.Param("maxPrice")
+	sideParam := c.Param("side")
+	maxPrice, err := decimal.NewFromString(maxPriceParam)
+	if err != nil {
+		log.Println(err)
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var orderSide orderbook.Side
+	if sideParam == "buy" {
+		orderSide = orderbook.Buy
+	} else if sideParam == "sell" {
+		orderSide = orderbook.Sell
+	} else {
+		c.SecureJSON(http.StatusBadRequest, gin.H{})
+		return
+	}
+	log.Println(orderSide, maxPrice)
+
+	quantity, err := orderbook.CalculateMarketQuantity(orderSide, maxPrice)
+	if err != nil {
+		log.Println(err)
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	quantityFloat, _ := quantity.Float64()
+	c.SecureJSON(http.StatusOK, gin.H{"quantity": quantityFloat, "side": sideParam})
+	return
+}
+
 func GetCurrentDepthHandler(c *gin.Context) {
 	depthMarshal, err := orderbook.DepthMarshalJSON()
 	if err != nil {
