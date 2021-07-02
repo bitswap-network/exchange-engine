@@ -86,7 +86,7 @@ func Setup() {
 	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
 
 	if IsTest {
-		Wallet.InitBcltTolerance = -111.184163
+		Wallet.InitBcltTolerance = -110.929263
 		Wallet.InitEthTolerance = 0.864276231
 	} else {
 		Wallet.InitBcltTolerance = -111.240163
