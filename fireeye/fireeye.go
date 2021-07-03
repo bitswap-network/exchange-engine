@@ -83,37 +83,43 @@ func SyncStatus(ctx context.Context) {
 	bitcloutDeviation := math.Abs((bitcloutSync / walletBcltBalance) - 1)
 	etherDeviation := math.Abs((etherSync / walletEthBalance) - 1)
 
+	errMsg := false
+
 	if bitcloutDeviation > MaxTolerance && etherDeviation > MaxTolerance {
 		FireEye.Code = 33
 		FireEye.Message = "Bitclout and ether balance out of sync (MAX TOLERANCE)."
-		log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
+		errMsg = true
 	} else if bitcloutDeviation > MaxTolerance || etherDeviation > MaxTolerance {
+		errMsg = true
 		if bitcloutDeviation > MaxTolerance {
 			FireEye.Code = 32
 			FireEye.Message = "Bitclout balance out of sync (MAX TOLERANCE)."
-			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
 		} else {
 			FireEye.Code = 31
 			FireEye.Message = "Ether balance out of sync (MAX TOLERANCE)."
-			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
 		}
 	} else if bitcloutDeviation > MidTolerance && etherDeviation > MidTolerance {
 		FireEye.Code = 13
 		FireEye.Message = "Bitclout and ether balance out of sync (MID TOLERANCE)."
-		log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
+		errMsg = true
 	} else if bitcloutDeviation > MidTolerance || etherDeviation > MidTolerance {
+		errMsg = true
 		if bitcloutDeviation > MidTolerance {
 			FireEye.Code = 12
 			FireEye.Message = "Bitclout balance out of sync (MID TOLERANCE)."
-			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
 		} else {
 			FireEye.Code = 11
 			FireEye.Message = "Ether balance out of sync (MID TOLERANCE)."
-			log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v. Bitclout DB Balance: %v. Bitclout Wallet Balance: %v. Ethereum DB Balance: %v. Ethereum Wallet Balance %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation, bitcloutSync-config.Wallet.InitBcltTolerance, walletBcltBalance, etherSync-config.Wallet.InitEthTolerance, walletEthBalance)
+
 		}
 	} else {
 		FireEye.Code = 0
 		FireEye.Message = "OK"
+	}
+	if errMsg {
+		log.Printf("FireEye Status: %v. Message: %s. Bitclout Deviation: %v. Ethereum Deviation: %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
+		log.Printf("Bitclout DB Balance: %v.  Bitclout Fees %v. Bitclout Wallet Balance: %v.\n", totalBalance.Bitclout, totalFees.Bitclout, walletBcltBalance)
+		log.Printf("Ethereum DB Balance: %v. Ethereum Fees: %v. Ethereum Wallet Balance %v.\n", totalBalance.Ether, totalFees.Ether, walletEthBalance)
 	}
 
 }
