@@ -31,7 +31,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 			}},
 		}},
 	}
-	opts := options.Aggregate().SetMaxTime(2 * time.Second)
+	opts := options.Aggregate().SetMaxTime(5 * time.Second)
 	cursor, err := OrderCollection().Aggregate(ctx, mongo.Pipeline{bitcloutMatchStage, bitcloutGroupStage}, opts)
 	if err != nil {
 		return nil, err
