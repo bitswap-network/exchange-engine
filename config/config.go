@@ -90,7 +90,7 @@ func Setup() {
 		Wallet.InitEthTolerance = 0.887120629
 	} else {
 		Wallet.InitBcltTolerance = -120.501062
-		Wallet.InitEthTolerance = 10.8421526
+		Wallet.InitEthTolerance = 10.8817807
 	}
 
 	log.Println("config setup complete")
