@@ -1,4 +1,4 @@
 package gateway
 
-const BITCLOUT_DEPOSIT_FEENANOS = 10000
+const BITCLOUT_DEPOSIT_FEENANOS = 5000
 const MinFeeRateNanosPerKB = 1000

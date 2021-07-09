@@ -27,33 +27,31 @@ func QueryWallets(ctx context.Context) {
 	}
 	for _, wallet := range wallets {
 		wg.Add(1)
-		time.Sleep(50 * time.Millisecond) // to prevent api from getting overwhelmed
+		time.Sleep(15 * time.Millisecond) // to prevent api from getting overwhelmed
 		go func(wallet *models.WalletSchema) {
 			walletBalanceNanos, err := GetWalletBalance(wallet)
 			if err != nil {
 				log.Panic(err)
 			}
-			if walletBalanceNanos-wallet.Fees.Bitclout > 1000 {
+			if walletBalanceNanos-wallet.Fees.Bitclout > 1000000 {
 				log.Println("found deposit: ", wallet)
 				amountToTransfer := walletBalanceNanos - BITCLOUT_DEPOSIT_FEENANOS
 				err = db.CreateDepositTransaction(ctx, wallet.User, "BCLT", global.FromNanos(amountToTransfer))
 				if err != nil {
 					log.Panic(err)
 				}
-				// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
-				// if err != nil {
-				// 	log.Panic(err)
-				// }
+
 				transaction, err := TransferToMain(ctx, wallet, amountToTransfer, false)
 				if err != nil {
 					log.Panic(err)
 				}
+				log.Println(transaction)
 				feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
 				err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
 				if err != nil {
 					log.Println(err)
 				}
-				err = db.IncrementFeesBitclout(ctx, wallet, feesRemaining)
+				err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
 				if err != nil {
 					log.Println(err)
 				}

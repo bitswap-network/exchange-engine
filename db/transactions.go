@@ -19,11 +19,13 @@ func CreateDepositTransaction(ctx context.Context, user primitive.ObjectID, asse
 	txn.ID = primitive.NewObjectID()
 	txn.AssetType = assetType
 	txn.Value = value
+	txn.TransactionType = "deposit"
 	txn.Completed = true
 	txn.Created = time.Now().UTC()
 	txn.CompletionDate = time.Now().UTC()
 	txn.Completed = true
 	txn.User = user
+	txn.State = "done"
 	if assetType == "ETH" {
 		txn.UsdValueAtTime = (global.Exchange.ETHUSD * value)
 	} else if assetType == "BCLT" {

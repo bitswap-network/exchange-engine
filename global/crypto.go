@@ -19,7 +19,6 @@ func DecryptGCM(encryptedString string, keyString string) (decryptedString strin
 	nonce, err := base64.StdEncoding.DecodeString(s[1])
 	tag, err := base64.StdEncoding.DecodeString(s[2])
 	dataWithTag := append(data, tag...)
-	log.Println(data, nonce, tag, dataWithTag)
 	var block cipher.Block
 	block, err = aes.NewCipher([]byte(keyString))
 	var aead cipher.AEAD
@@ -42,8 +41,6 @@ func EncryptGCM(text string, keyString string) (encryptedString string, err erro
 	encrypted := gcm.Seal(nil, nonce, []byte(text), nil)
 	encData := encrypted[0 : len(encrypted)-gcm.Overhead()]
 	tag := encrypted[len(encrypted)-gcm.Overhead():]
-	log.Println(encData, nonce, tag, len(encrypted))
-	log.Println(encrypted)
 	encryptedString = fmt.Sprintf("%s:%s:%s", base64.StdEncoding.EncodeToString(encData), base64.StdEncoding.EncodeToString(nonce), base64.StdEncoding.EncodeToString(tag))
 	return
 }

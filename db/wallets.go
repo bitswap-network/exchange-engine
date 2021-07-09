@@ -29,8 +29,8 @@ func GetAllWallets(ctx context.Context) ([]*models.WalletSchema, error) {
 	}
 	return walletsArray, nil
 }
-func IncrementFeesBitclout(ctx context.Context, wallet *models.WalletSchema, feesNanos uint64) error {
-	update := bson.M{"$inc": bson.M{"fees.bitclout": feesNanos}}
+func SetFeesBitclout(ctx context.Context, wallet *models.WalletSchema, feesNanos uint64) error {
+	update := bson.M{"$set": bson.M{"fees.bitclout": feesNanos}}
 	_, err := WalletCollection().UpdateOne(ctx, bson.M{"_id": wallet.ID}, update)
 	if err != nil {
 		log.Println(err.Error())

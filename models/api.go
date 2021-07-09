@@ -10,7 +10,7 @@ type TransferBalanceBody struct {
 	RecipientPublicKeyBase58Check string `json:"RecipientPublicKeyBase58Check"`
 	AmountNanos                   uint64 `json:"AmountNanos"`
 	MinFeeRateNanosPerKB          int64  `json:"MinFeeRateNanosPerKB"`
-	DryRun                        bool   `json:"DryRun "`
+	DryRun                        bool   `json:"DryRun"`
 }
 
 type TransferBalanceResponse struct {
@@ -33,13 +33,13 @@ type TBTransactionInfo struct {
 }
 
 type TBTransaction struct {
-	TransactionIDBase58Check string         `json:"TransactionIDBase58Check"`
-	RawTransactionHex        string         `json:"RawTransactionHex"`
-	Inputs                   []TBTxnInputs  `json:"Inputs"`
-	Outputs                  []TBTxnOutputs `json:"Outputs"`
-	SignatureHex             string         `json:"SignatureHex"`
-	TransactionType          int64          `json:"TransactionType"`
-	BlockHashHex             string         `json:"BlockHashHex"`
+	TransactionIDBase58Check string          `json:"TransactionIDBase58Check"`
+	RawTransactionHex        string          `json:"RawTransactionHex"`
+	Inputs                   []*TBTxnInputs  `json:"Inputs"`
+	Outputs                  []*TBTxnOutputs `json:"Outputs"`
+	SignatureHex             string          `json:"SignatureHex"`
+	TransactionType          string          `json:"TransactionType"`
+	BlockHashHex             string          `json:"BlockHashHex"`
 }
 
 type TBTxnInputs struct {

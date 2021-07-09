@@ -16,7 +16,7 @@ type TransactionSchema struct {
 	Created         time.Time          `json:"created" bson:"created" binding:"required"`
 	Completed       bool               `json:"completed" bson:"completed" binding:"required"`
 	CompletionDate  time.Time          `json:"completionDate" bson:"completionDate,omitempty" binding:"-"`
-	State           string             `json:"txnHashList" bson:"txnHashList,omitempty" binding:"-"`
+	State           string             `json:"state" bson:"state,omitempty" binding:"-"`
 	Error           string             `json:"error" bson:"error,omitempty" binding:"-"`
 	PoolAddress     *string            `json:"poolAddress" bson:"poolAddress,omitempty" binding:"-"`
 	GasPrice        *float64           `json:"gasPrice" bson:"gasPrice,omitempty" binding:"-"`
