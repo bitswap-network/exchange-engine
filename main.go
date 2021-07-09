@@ -12,7 +12,10 @@ import (
 	"exchange-engine/config"
 	"exchange-engine/db"
 	"exchange-engine/fireeye"
+	"exchange-engine/gateway"
 	"exchange-engine/global"
+	"exchange-engine/orderbook"
+	"exchange-engine/s3"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -33,9 +36,9 @@ func init() {
 	}
 	config.Setup()
 	global.Setup()
-	// s3.Setup()
-	// db.Setup()
-	// orderbook.Setup(false)
+	s3.Setup()
+	db.Setup()
+	orderbook.Setup(false)
 }
 
 func RouterSetup() *gin.Engine {
@@ -88,16 +91,16 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetExchangeRates)
-		gocron.Every(10).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(6).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(10).Seconds().Do(gateway.QueryWallets, context.Background())
 		<-gocron.Start()
 	}()
 
-	// go func() {
-	// 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-	// 		log.Printf("Listen Err: %s\n", err.Error())
-	// 	}
-	// }()
-	global.TestEncr()
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Listen Err: %s\n", err.Error())
+		}
+	}()
 	log.Printf("Starting %s server at: %s\n", config.ServerConfig.RunMode, config.ServerConfig.Addr)
 	<-quit
 	log.Printf("Server stopped via: %v", <-quit)

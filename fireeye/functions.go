@@ -3,9 +3,11 @@ package fireeye
 import (
 	"context"
 	"encoding/json"
+	"exchange-engine/config"
 	"exchange-engine/db"
 	"exchange-engine/global"
 	"exchange-engine/models"
+	"fmt"
 	"log"
 )
 
@@ -18,7 +20,7 @@ func GetMainWalletBalance(ctx context.Context) (*models.GetWalletBalanceResponse
 		return nil, err
 	}
 	getWalletBalanceResp := new(models.GetWalletBalanceResponse)
-	if err := global.PostJson("http://node.bitswap.network/api/v1/balance", getWalletBalanceReqBody, getWalletBalanceResp); err != nil {
+	if err := global.PostJson(fmt.Sprintf("%s/api/v1/balance", config.BITCLOUT_NODEURL), getWalletBalanceReqBody, getWalletBalanceResp); err != nil {
 		log.Println("ERROR getWalletBalanceResp: ", err)
 		return nil, err
 	}

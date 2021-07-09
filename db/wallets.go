@@ -11,7 +11,7 @@ import (
 func GetAllWallets(ctx context.Context) ([]*models.WalletSchema, error) {
 	var walletsArray []*models.WalletSchema
 
-	cursor, err := WalletCollection().Find(ctx, bson.D{})
+	cursor, err := WalletCollection().Find(ctx, bson.M{"user": bson.M{"$ne": nil}})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -29,10 +29,19 @@ func GetAllWallets(ctx context.Context) ([]*models.WalletSchema, error) {
 	}
 	return walletsArray, nil
 }
+func IncrementFeesBitclout(ctx context.Context, wallet *models.WalletSchema, feesNanos uint64) error {
+	update := bson.M{"$inc": bson.M{"fees.bitclout": feesNanos}}
+	_, err := WalletCollection().UpdateOne(ctx, bson.M{"_id": wallet.ID}, update)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	return nil
+}
 func GetMainWallet(ctx context.Context) (*models.WalletSchema, error) {
 	var walletDoc *models.WalletSchema
 
-	err := WalletCollection().FindOne(ctx, bson.M{"super": 1}).Decode(&walletDoc)
+	err := WalletCollection().FindOne(ctx, bson.M{"super": 0}).Decode(&walletDoc)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

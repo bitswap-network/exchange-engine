@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"exchange-engine/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -37,6 +39,16 @@ Updates a user's BitClout and Ether balances by `bitcloutChange` and `etherChang
 
 One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE POSITIVE.
 */
+
+func CreditUserBalance(ctx context.Context, userId primitive.ObjectID, bitcloutNanosCredit, etherWeiCredit uint64) error {
+	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutNanosCredit, "balance.ether": etherWeiCredit}}
+	_, err := UserCollection().UpdateOne(ctx, bson.M{"_id": userId}, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, etherChange float64) error {
 	if (bitcloutChange > 0) == (etherChange > 0) {
 		return errors.New("both `bitcloutChange` and `etherChange` cannot be positive or negative")
@@ -108,9 +120,6 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 			{"totalEther", bson.D{
 				{"$sum", "$balance.ether"},
 			}},
-			{"totalUsdc", bson.D{
-				{"$sum", "$balance.usdc"},
-			}},
 		}},
 	}
 	opts := options.Aggregate().SetMaxTime(2 * time.Second)
@@ -123,8 +132,8 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 		return nil, err
 	}
 
-	bsonBytes, _ := bson.Marshal(results[0])
-	err = bson.Unmarshal(bsonBytes, &totalBalances)
+	jsonBytes, _ := json.Marshal(results[0])
+	err = json.Unmarshal(jsonBytes, &totalBalances)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
@@ -25,7 +26,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	}
 	bitcloutGroupStage := bson.D{
 		{"$group", bson.D{
-			{"_id", ""},
+			{"_id", 0},
 			{"totalBitclout", bson.D{
 				{"$sum", "$fees"},
 			}},
@@ -40,8 +41,8 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err = cursor.All(ctx, &resultsBclt); err != nil {
 		return nil, err
 	}
-	bsonBytes, _ := bson.Marshal(resultsBclt[0])
-	if err = bson.Unmarshal(bsonBytes, &totalFees); err != nil {
+	jsonBytes, _ := json.Marshal(resultsBclt[0])
+	if err = json.Unmarshal(jsonBytes, &totalFees); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +53,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	}
 	etherGroupStage := bson.D{
 		{"$group", bson.D{
-			{"_id", ""},
+			{"_id", 0},
 			{"totalEther", bson.D{
 				{"$sum", "$fees"},
 			}},
@@ -66,8 +67,9 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err = cursor.All(ctx, &resultsEth); err != nil {
 		return nil, err
 	}
-	bsonBytes, _ = bson.Marshal(resultsEth[0])
-	if err = bson.Unmarshal(bsonBytes, &totalFees); err != nil {
+	jsonBytes, _ = json.Marshal(resultsEth[0])
+	if err = json.Unmarshal(jsonBytes, &totalFees); err != nil {
+		log.Println("total fees eth err", err.Error())
 		return nil, err
 	}
 	return totalFees, nil

@@ -41,12 +41,12 @@ type PoolBalanceSchema struct {
 }
 
 type WalletSchema struct {
-	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty" binding:"required"`
-	KeyInfo KeyInfoSchema       `json:"keyInfo" bson:"keyInfo" binding:"required"`
-	User    *primitive.ObjectID `json:"user" bson:"user" binding:"-"`
-	Fees    FeesSchema          `json:"balance" bson:"balance" binding:"required"`
-	Super   uint                `json:"super" bson:"super" binding:"required"`
-	Status  uint                `json:"status" bson:"status" binding:"required"`
+	ID      primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"required"`
+	KeyInfo KeyInfoSchema      `json:"keyInfo" bson:"keyInfo" binding:"required"`
+	User    primitive.ObjectID `json:"user" bson:"user,omitempty" binding:"-"`
+	Fees    FeesSchema         `json:"balance" bson:"balance" binding:"required"`
+	Super   uint               `json:"super" bson:"super" binding:"required"`
+	Status  uint               `json:"status" bson:"status" binding:"required"`
 }
 
 type FeesSchema struct {
@@ -95,17 +95,16 @@ type OrderSchema struct {
 }
 
 type UserSchema struct {
-	ID           primitive.ObjectID    `json:"_id" bson:"_id" binding:"-"`
-	Name         string                `json:"name" bson:"name" binding:"-"`
-	Email        string                `json:"email" bson:"email" binding:"-"`
-	Password     string                `json:"password" bson:"password" binding:"-"`
-	Balance      *UserBalance          `json:"balance" bson:"balance" binding:"-"`
-	Transactions []*primitive.ObjectID `json:"transactions" bson:"transactions" binding:"-"`
-	Verification UserVerification      `json:"verification" bson:"verification" binding:"-"`
-	Bitclout     UserBitclout          `json:"bitclout" bson:"bitclout" binding:"-"`
-	Tier         uint                  `json:"tier" bson:"tier" binding:"required"`
-	Created      time.Time             `json:"created" bson:"created" binding:"-"`
-	Admin        bool                  `json:"admin" bson:"admin" binding:"-"`
+	ID           primitive.ObjectID `json:"_id" bson:"_id" binding:"-"`
+	Name         string             `json:"name" bson:"name" binding:"-"`
+	Email        string             `json:"email" bson:"email" binding:"-"`
+	Password     string             `json:"password" bson:"password" binding:"-"`
+	Balance      *UserBalance       `json:"balance" bson:"balance" binding:"-"`
+	Verification UserVerification   `json:"verification" bson:"verification" binding:"-"`
+	Bitclout     UserBitclout       `json:"bitclout" bson:"bitclout" binding:"-"`
+	Tier         uint               `json:"tier" bson:"tier" binding:"required"`
+	Created      time.Time          `json:"created" bson:"created" binding:"-"`
+	Admin        bool               `json:"admin" bson:"admin" binding:"-"`
 }
 
 type UserBalance struct {

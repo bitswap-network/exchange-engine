@@ -49,7 +49,7 @@ func SyncStatus(ctx context.Context) {
 	}
 	walletEtherBalance := global.FromWei(walletEtherBalanceWei)
 
-	FireEye.WalletBalance = models.CurrencyAmounts{walletBitcloutBalanceNanos, walletEtherBalanceWei, 0}
+	FireEye.WalletBalance = models.CurrencyAmounts{walletBitcloutBalanceNanos, walletEtherBalanceWei}
 	FireEye.TotalAccount = *TotalAccount
 	FireEye.TotalFees = *TotalFees
 
