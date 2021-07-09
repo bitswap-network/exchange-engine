@@ -69,7 +69,6 @@ func UploadToS3(data []byte) {
 		return
 	}
 	log.Println("done uploading", time.Now())
-	return
 }
 
 func GetOrderbook() (data []byte) {

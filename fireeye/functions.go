@@ -13,6 +13,10 @@ import (
 
 func GetMainWalletBalance(ctx context.Context) (*models.GetWalletBalanceResponse, error) {
 	wallet, err := db.GetMainWallet(ctx)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
 	getWalletBalanceMap := models.GetWalletBalanceBody{wallet.KeyInfo.Bitclout.PublicKeyBase58Check, BitcloutConfirmations}
 	getWalletBalanceReqBody, err := json.Marshal(getWalletBalanceMap)
 	if err != nil {
