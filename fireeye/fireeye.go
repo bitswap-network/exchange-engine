@@ -2,8 +2,6 @@ package fireeye
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"log"
 	"math"
 
@@ -34,25 +32,6 @@ func SyncStatus(ctx context.Context) {
 	totalFeesBitclout := global.FromNanos(TotalFees.Bitclout)
 	totalFeesEther := global.FromWei(TotalFees.Ether)
 
-	getUsersSLReqMap := map[string][]string{"PublicKeysBase58Check": config.Wallet.Addr_BCLT}
-	getUsersSLReqBody, err := json.Marshal(getUsersSLReqMap)
-	if err != nil {
-		SetSyncWarn(err)
-		log.Panic(err)
-		return
-	}
-	getUserSLResp := new(models.GetUsersStateLessResponse)
-	if err := global.PostJson("http://node.bitswap.network/api/v0/get-users-stateless", getUsersSLReqBody, getUserSLResp); err != nil {
-		SetSyncWarn(err)
-		log.Panic("ERROR getusersstateless: ", err)
-		return
-	}
-	// We should only retrieve our single BitClout wallet account
-	if len(getUserSLResp.Userlist) != len(config.Wallet.Addr_BCLT) {
-		SetSyncWarn(errors.New("could not find the Wallet BitClout Account"))
-		log.Panic("ERROR getusersstateless UserList too small")
-		return
-	}
 	walletBalance, err := GetMainWalletBalance(ctx)
 	if err != nil {
 		SetSyncWarn(err)
@@ -70,9 +49,9 @@ func SyncStatus(ctx context.Context) {
 	}
 	walletEtherBalance := global.FromWei(walletEtherBalanceWei)
 
-	FireEye.WalletBalance = &models.CurrencyAmounts{walletBitcloutBalanceNanos, walletEtherBalanceWei, 0}
-	FireEye.TotalAccount = TotalAccount
-	FireEye.TotalFees = TotalFees
+	FireEye.WalletBalance = models.CurrencyAmounts{walletBitcloutBalanceNanos, walletEtherBalanceWei, 0}
+	FireEye.TotalAccount = *TotalAccount
+	FireEye.TotalFees = *TotalFees
 
 	var (
 		bitcloutSync = totalAccountBitclout + totalFeesBitclout + config.Wallet.InitBcltTolerance

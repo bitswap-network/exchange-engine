@@ -5,9 +5,9 @@ import "exchange-engine/models"
 type FireEyeT struct {
 	Message       string
 	Code          int
-	TotalAccount  *models.CurrencyAmounts
-	TotalFees     *models.CurrencyAmounts
-	WalletBalance *models.CurrencyAmounts
+	TotalAccount  models.CurrencyAmounts
+	TotalFees     models.CurrencyAmounts
+	WalletBalance models.CurrencyAmounts
 }
 
 //0-10 CODE -> OK, Possible info
