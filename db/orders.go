@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
@@ -25,7 +26,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	}
 	bitcloutGroupStage := bson.D{
 		{"$group", bson.D{
-			{"_id", ""},
+			{"_id", 0},
 			{"totalBitclout", bson.D{
 				{"$sum", "$fees"},
 			}},
@@ -40,8 +41,8 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err = cursor.All(ctx, &resultsBclt); err != nil {
 		return nil, err
 	}
-	bsonBytes, _ := bson.Marshal(resultsBclt[0])
-	if err = bson.Unmarshal(bsonBytes, &totalFees); err != nil {
+	jsonBytes, _ := json.Marshal(resultsBclt[0])
+	if err = json.Unmarshal(jsonBytes, &totalFees); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +53,7 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	}
 	etherGroupStage := bson.D{
 		{"$group", bson.D{
-			{"_id", ""},
+			{"_id", 0},
 			{"totalEther", bson.D{
 				{"$sum", "$fees"},
 			}},
@@ -66,8 +67,9 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err = cursor.All(ctx, &resultsEth); err != nil {
 		return nil, err
 	}
-	bsonBytes, _ = bson.Marshal(resultsEth[0])
-	if err = bson.Unmarshal(bsonBytes, &totalFees); err != nil {
+	jsonBytes, _ = json.Marshal(resultsEth[0])
+	if err = json.Unmarshal(jsonBytes, &totalFees); err != nil {
+		log.Println("total fees eth err", err.Error())
 		return nil, err
 	}
 	return totalFees, nil
@@ -101,13 +103,13 @@ func ValidateOrder(ctx context.Context, publicKey string, orderSide string, orde
 		log.Println(err.Error())
 		return false
 	}
-	if userDoc.Balance.InTransaction || orderQuantity > 500 || orderQuantity <= 0 {
+	if userDoc.Balance.InTransaction || orderQuantity > 500 || orderQuantity < 0.01 {
 		return false
 	} else {
 		if orderSide == "buy" {
-			return totalEth <= userDoc.Balance.Ether
+			return totalEth <= global.FromWei(userDoc.Balance.Ether)
 		} else {
-			return orderQuantity <= userDoc.Balance.Bitclout
+			return orderQuantity <= global.FromNanos(userDoc.Balance.Bitclout)
 		}
 	}
 }
@@ -166,11 +168,10 @@ Returns:
 	`etherChange`: The change in the ether balance ($)
 	`fees`: The fees taken from the transaction ($)
 */
-func calcChangeAndFees(ctx context.Context, orderSide string, quantity, totalPrice float64) (bitcloutChange, etherChange, fees float64) {
+func calcChangeAndFees(orderSide string, quantity, totalPrice float64) (bitcloutChange, etherChange, fees float64) {
 	ETHUSD := global.Exchange.ETHUSD
-	if global.Exchange.ETHUSD == 0 {
-		log.Printf("ETHUSD is 0. THIS IS NOT OK IF LIVE")
-		ETHUSD = 2417.67 // value of eth usd as of June 16, 2021 11:04 PM ET
+	if ETHUSD == 0 {
+		log.Panic("ETHUSD is 0. THIS IS NOT OK IF LIVE")
 	}
 
 	//update ether USD price var
@@ -199,7 +200,7 @@ func CompleteLimitOrder(ctx context.Context, orderID string, totalPrice float64)
 		return err
 	}
 
-	bitcloutChange, etherChange, fees := calcChangeAndFees(ctx,
+	bitcloutChange, etherChange, fees := calcChangeAndFees(
 		orderDoc.OrderSide,
 		orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed,
 		totalPrice)
@@ -239,7 +240,7 @@ func CompleteLimitOrderDirect(ctx context.Context, orderID string) error {
 		return err
 	}
 
-	bitcloutChange, etherChange, fees := calcChangeAndFees(ctx,
+	bitcloutChange, etherChange, fees := calcChangeAndFees(
 		orderDoc.OrderSide,
 		orderDoc.OrderQuantity-orderDoc.OrderQuantityProcessed,
 		((orderDoc.OrderQuantity - orderDoc.OrderQuantityProcessed) * orderDoc.OrderPrice))
@@ -280,7 +281,7 @@ func PartialLimitOrder(ctx context.Context, orderID string, quantityDelta float6
 		return err
 	}
 
-	bitcloutChange, etherChange, fees := calcChangeAndFees(ctx,
+	bitcloutChange, etherChange, fees := calcChangeAndFees(
 		orderDoc.OrderSide,
 		quantityDelta,
 		totalPrice)
@@ -318,7 +319,7 @@ func PartialLimitOrderDirect(ctx context.Context, orderID string, quantityDelta 
 		return err
 	}
 
-	bitcloutChange, etherChange, fees := calcChangeAndFees(ctx,
+	bitcloutChange, etherChange, fees := calcChangeAndFees(
 		orderDoc.OrderSide,
 		quantityDelta,
 		(quantityDelta * orderDoc.OrderPrice))
@@ -355,7 +356,7 @@ func MarketOrder(ctx context.Context, orderID string, quantityProcessed float64,
 		log.Printf("Error fetching order `%s`: \n"+err.Error(), orderID)
 		return err
 	}
-	bitcloutChange, etherChange, fees := calcChangeAndFees(ctx,
+	bitcloutChange, etherChange, fees := calcChangeAndFees(
 		orderDoc.OrderSide,
 		quantityProcessed,
 		totalPrice)

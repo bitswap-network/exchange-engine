@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"exchange-engine/global"
 	"math"
 	"testing"
@@ -14,7 +13,7 @@ func TestCalcChangeAndFees(t *testing.T) {
 	// The percent difference should be less than 0.01
 	tol := 0.01
 
-	bitcloutChange, etherChange, fees := calcChangeAndFees(context.TODO(), "buy", 10, 150)
+	bitcloutChange, etherChange, fees := calcChangeAndFees("buy", 10, 150)
 
 	if bitcloutChange != 10*(1-global.Exchange.FEE) {
 		t.Fatalf("bitcloutChange is calculated incorrectly. Received: %v. Expected: %v", bitcloutChange, 9.8)
@@ -28,7 +27,7 @@ func TestCalcChangeAndFees(t *testing.T) {
 		t.Fatalf("fees are calculated incorrectly. Received: %v. Expected: %v", fees, 10*global.Exchange.FEE)
 	}
 
-	bitcloutChange, etherChange, fees = calcChangeAndFees(context.TODO(), "sell", 10, 150)
+	bitcloutChange, etherChange, fees = calcChangeAndFees("sell", 10, 150)
 	correctFees := 150 * global.Exchange.FEE / ETHUSD
 	if bitcloutChange != -10 {
 		t.Fatalf("bitcloutChange is calculated incorrectly. Received: %v. Expected: %v", bitcloutChange, -10)

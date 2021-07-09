@@ -12,12 +12,12 @@ type TransactionSchema struct {
 	TransactionType string             `json:"transactionType" bson:"transactionType" binding:"required"`
 	AssetType       string             `json:"assetType" bson:"assetType" binding:"required"`
 	Value           float64            `json:"value" bson:"value" binding:"required"`
-	UsdValueAtTime  *float64           `json:"usdValueAtTime" bson:"usdValueAtTime" binding:"-"`
+	UsdValueAtTime  float64            `json:"usdValueAtTime" bson:"usdValueAtTime" binding:"-"`
 	Created         time.Time          `json:"created" bson:"created" binding:"required"`
 	Completed       bool               `json:"completed" bson:"completed" binding:"required"`
-	CompletionDate  *time.Time         `json:"completionDate" bson:"completionDate,omitempty" binding:"-"`
-	State           string             `json:"txnHashList" bson:"txnHashList,omitempty" binding:"-"`
-	Error           *string            `json:"error" bson:"error,omitempty" binding:"-"`
+	CompletionDate  time.Time          `json:"completionDate" bson:"completionDate,omitempty" binding:"-"`
+	State           string             `json:"state" bson:"state,omitempty" binding:"-"`
+	Error           string             `json:"error" bson:"error,omitempty" binding:"-"`
 	PoolAddress     *string            `json:"poolAddress" bson:"poolAddress,omitempty" binding:"-"`
 	GasPrice        *float64           `json:"gasPrice" bson:"gasPrice,omitempty" binding:"-"`
 	TxnHash         *string            `json:"txnHash" bson:"txnHash,omitempty" binding:"-"`
@@ -30,25 +30,27 @@ type PoolSchema struct {
 	Balance     PoolBalanceSchema   `json:"balance" bson:"balance" binding:"required"`
 	Address     string              `json:"address" bson:"address" binding:"required"`
 	HashedKey   string              `json:"hashedKey" bson:"hashedKey" binding:"required"`
-	ActiveStart *int64              `json:"activeStart" bson:"activeStart" binding:"-"`
+	ActiveStart *uint64             `json:"activeStart" bson:"activeStart" binding:"-"`
 	User        *primitive.ObjectID `json:"user" bson:"user,omitempty" binding:"-"`
 	TxnHashList []string            `json:"txnHashList" bson:"txnHashList,omitempty" binding:"-"`
 }
 
 type PoolBalanceSchema struct {
-	ETH  float64 `json:"eth" bson:"eth" binding:"required"`
-	USDC float64 `json:"usdc" bson:"usdc" binding:"required"`
+	ETH  uint64 `json:"eth" bson:"eth" binding:"required"`
+	USDC uint64 `json:"usdc" bson:"usdc" binding:"required"`
 }
 
 type WalletSchema struct {
 	ID      primitive.ObjectID `json:"_id" bson:"_id,omitempty" binding:"required"`
 	KeyInfo KeyInfoSchema      `json:"keyInfo" bson:"keyInfo" binding:"required"`
-	User    primitive.ObjectID `json:"user" bson:"user" binding:"required"`
-	Balance BalanceSchema      `json:"balance" bson:"balance" binding:"required"`
+	User    primitive.ObjectID `json:"user" bson:"user,omitempty" binding:"-"`
+	Fees    FeesSchema         `json:"balance" bson:"balance" binding:"required"`
+	Super   uint               `json:"super" bson:"super" binding:"required"`
+	Status  uint               `json:"status" bson:"status" binding:"required"`
 }
 
-type BalanceSchema struct {
-	Bitclout float64 `json:"bitclout" bson:"bitclout" binding:"required"`
+type FeesSchema struct {
+	Bitclout uint64 `json:"bitclout" bson:"bitclout" binding:"required"`
 }
 
 type KeyInfoSchema struct {
@@ -61,7 +63,7 @@ type BitcloutKeyInfo struct {
 	PrivateKeyBase58Check string `json:"privateKeyBase58Check" bson:"privateKeyBase58Check" binding:"required"`
 	PrivateKeyHex         string `json:"privateKeyHex" bson:"privateKeyHex" binding:"required"`
 	ExtraText             string `json:"extraText" bson:"extraText" binding:"required"`
-	Index                 uint32 `json:"index" bson:"index" binding:"required"`
+	Index                 uint64 `json:"index" bson:"index" binding:"required"`
 }
 
 type DepthSchema struct {
@@ -93,24 +95,23 @@ type OrderSchema struct {
 }
 
 type UserSchema struct {
-	ID           primitive.ObjectID    `json:"_id" bson:"_id" binding:"-"`
-	Name         string                `json:"name" bson:"name" binding:"-"`
-	Email        string                `json:"email" bson:"email" binding:"-"`
-	Password     string                `json:"password" bson:"password" binding:"-"`
-	Balance      *UserBalance          `json:"balance" bson:"balance" binding:"-"`
-	Transactions []*primitive.ObjectID `json:"transactions" bson:"transactions" binding:"-"`
-	Verification UserVerification      `json:"verification" bson:"verification" binding:"-"`
-	Bitclout     UserBitclout          `json:"bitclout" bson:"bitclout" binding:"-"`
-	Tier         int                   `json:"tier" bson:"tier" binding:"required"`
-	Created      time.Time             `json:"created" bson:"created" binding:"-"`
-	Admin        bool                  `json:"admin" bson:"admin" binding:"-"`
+	ID           primitive.ObjectID `json:"_id" bson:"_id" binding:"-"`
+	Name         string             `json:"name" bson:"name" binding:"-"`
+	Email        string             `json:"email" bson:"email" binding:"-"`
+	Password     string             `json:"password" bson:"password" binding:"-"`
+	Balance      *UserBalance       `json:"balance" bson:"balance" binding:"-"`
+	Verification UserVerification   `json:"verification" bson:"verification" binding:"-"`
+	Bitclout     UserBitclout       `json:"bitclout" bson:"bitclout" binding:"-"`
+	Tier         uint               `json:"tier" bson:"tier" binding:"required"`
+	Created      time.Time          `json:"created" bson:"created" binding:"-"`
+	Admin        bool               `json:"admin" bson:"admin" binding:"-"`
 }
 
 type UserBalance struct {
-	Bitclout      float64 `json:"bitclout" bson:"bitclout" binding:"required"`
-	Ether         float64 `json:"ether" bson:"ether" binding:"required"`
-	USDC          float64 `json:"usdc" bson:"usdc" binding:"required"`
-	InTransaction bool    `json:"in_transaction" bson:"in_transaction" binding:"required"`
+	Bitclout      uint64 `json:"bitclout" bson:"bitclout" binding:"required"`
+	Ether         uint64 `json:"ether" bson:"ether" binding:"required"`
+	USDC          uint64 `json:"usdc" bson:"usdc" binding:"required"`
+	InTransaction bool   `json:"in_transaction" bson:"in_transaction" binding:"required"`
 }
 
 type UserVerification struct {
