@@ -1,8 +1,19 @@
 package models
 
 type CurrencyAmounts struct {
-	Bitclout float64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
-	Ether    float64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+	Bitclout uint64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
+	Ether    uint64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+	Usdc     uint64 `json:"totalUsdc" bson:"totalUsdc,omitempty" binding:"-"`
+}
+
+type GetWalletBalanceBody struct {
+	PublicKeyBase58Check string
+	Confirmations        int64
+}
+
+type GetWalletBalanceResponse struct {
+	ConfirmedBalanceNanos   uint64 `json:"ConfirmedBalanceNanos"`
+	UnconfirmedBalanceNanos uint64 `json:"UnconfirmedBalanceNanos"`
 }
 
 type GetUsersStateLessResponse struct {
@@ -10,7 +21,10 @@ type GetUsersStateLessResponse struct {
 }
 
 type UserList struct {
-	BalanceNanos int64 `json:"BalanceNanos"`
+	BalanceNanos uint64 `json:"BalanceNanos"`
+}
+type CloutPriceAPI struct {
+	Data float64 `json:"data"`
 }
 
 type EthPriceAPI struct {

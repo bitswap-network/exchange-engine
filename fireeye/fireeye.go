@@ -13,37 +13,27 @@ import (
 	"exchange-engine/models"
 )
 
-type FireEyeT struct {
-	Message string
-	Code    int
-}
-
-//0-10 CODE -> OK, Possible info
-//10-20 CODE -> Warn, Requests allowed still
-//20-30 CODE -> Unavailable, blocking requests
-//30-40 CODE -> Balance Error
-var FireEye = &FireEyeT{
-	Message: "Pending Initialization",
-	Code:    20,
-}
-
-const MidTolerance = 0.001 // 0.1% Tolerance
-const MaxTolerance = 0.005 //0.5% Tolerance
-
 func SyncStatus(ctx context.Context) {
 
-	totalBalance, err := db.GetTotalBalances(ctx)
+	TotalAccount, err := db.GetTotalBalances(ctx)
 	if err != nil {
 		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
-	totalFees, err := db.GetOrderFees(ctx)
+	totalAccountBitclout := global.FromNanos(TotalAccount.Bitclout)
+	totalAccountEther := global.FromWei(TotalAccount.Ether)
+
+	TotalFees, err := db.GetOrderFees(ctx)
 	if err != nil {
 		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
+
+	totalFeesBitclout := global.FromNanos(TotalFees.Bitclout)
+	totalFeesEther := global.FromWei(TotalFees.Ether)
+
 	getUsersSLReqMap := map[string][]string{"PublicKeysBase58Check": config.Wallet.Addr_BCLT}
 	getUsersSLReqBody, err := json.Marshal(getUsersSLReqMap)
 	if err != nil {
@@ -52,7 +42,7 @@ func SyncStatus(ctx context.Context) {
 		return
 	}
 	getUserSLResp := new(models.GetUsersStateLessResponse)
-	if err := global.PostJson("http://node.bitswap.network/api/v1/get-users-stateless", getUsersSLReqBody, getUserSLResp); err != nil {
+	if err := global.PostJson("http://node.bitswap.network/api/v0/get-users-stateless", getUsersSLReqBody, getUserSLResp); err != nil {
 		SetSyncWarn(err)
 		log.Panic("ERROR getusersstateless: ", err)
 		return
@@ -61,27 +51,36 @@ func SyncStatus(ctx context.Context) {
 	if len(getUserSLResp.Userlist) != len(config.Wallet.Addr_BCLT) {
 		SetSyncWarn(errors.New("could not find the Wallet BitClout Account"))
 		log.Panic("ERROR getusersstateless UserList too small")
+		return
 	}
-	var walletBcltBalance float64 = 0
-	for _, balance := range getUserSLResp.Userlist {
-		walletBcltBalance += float64(balance.BalanceNanos) / 1e9
-	}
-	pools, err := db.GetAllPools(ctx)
+	walletBalance, err := GetMainWalletBalance(ctx)
 	if err != nil {
 		SetSyncWarn(err)
 		log.Panic(err)
 		return
 	}
-	var walletEthBalance float64 = 0
-	for _, pool := range pools {
-		walletEthBalance += pool.Balance.ETH
+	walletBitcloutBalanceNanos := walletBalance.ConfirmedBalanceNanos
+	walletBitcloutBalance := global.FromNanos(walletBitcloutBalanceNanos)
+
+	walletEtherBalanceWei, err := GetPoolsBalance(ctx)
+	if err != nil {
+		SetSyncWarn(err)
+		log.Panic(err)
+		return
 	}
+	walletEtherBalance := global.FromWei(walletEtherBalanceWei)
+
+	FireEye.WalletBalance = &models.CurrencyAmounts{walletBitcloutBalanceNanos, walletEtherBalanceWei, 0}
+	FireEye.TotalAccount = TotalAccount
+	FireEye.TotalFees = TotalFees
+
 	var (
-		bitcloutSync = totalBalance.Bitclout + config.Wallet.InitBcltTolerance
-		etherSync    = totalBalance.Ether + config.Wallet.InitEthTolerance
+		bitcloutSync = totalAccountBitclout + totalFeesBitclout + config.Wallet.InitBcltTolerance
+		etherSync    = totalAccountEther + totalFeesEther + config.Wallet.InitEthTolerance
 	)
-	bitcloutDeviation := math.Abs((bitcloutSync / walletBcltBalance) - 1)
-	etherDeviation := math.Abs((etherSync / walletEthBalance) - 1)
+
+	bitcloutDeviation := math.Abs((bitcloutSync / walletBitcloutBalance) - 1)
+	etherDeviation := math.Abs((etherSync / walletEtherBalance) - 1)
 
 	errMsg := false
 
@@ -118,8 +117,8 @@ func SyncStatus(ctx context.Context) {
 	}
 	if errMsg {
 		log.Printf("FireEye Status: %v. Message: %s Bitclout Deviation: %v. Ethereum Deviation: %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
-		log.Printf("Bitclout DB Balance: %v.  Bitclout Fees %v. Bitclout Wallet Balance: %v.\n", totalBalance.Bitclout, totalFees.Bitclout, walletBcltBalance)
-		log.Printf("Ethereum DB Balance: %v. Ethereum Fees: %v. Ethereum Wallet Balance %v.\n", totalBalance.Ether, totalFees.Ether, walletEthBalance)
+		log.Printf("Bitclout DB Balance: %v.  Bitclout Fees %v. Bitclout Wallet Balance: %v.\n", totalAccountBitclout, totalFeesBitclout, walletBitcloutBalance)
+		log.Printf("Ethereum DB Balance: %v. Ethereum Fees: %v. Ethereum Wallet Balance %v.\n", totalAccountEther, totalFeesEther, walletEtherBalance)
 	}
 
 }

@@ -66,8 +66,6 @@ func RouterSetup() *gin.Engine {
 
 func main() {
 
-	// ethGateway, err := ethclient.Dial("https://eth-mainnet.alchemyapi.io/v2/xhIIdjrFA63X5jKpLK2mm5ZLjgy-jQaH")
-
 	// Enable line numbers in logging
 	log.SetFlags(log.Lshortfile)
 
@@ -91,7 +89,7 @@ func main() {
 
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		gocron.Every(10).Seconds().Do(global.SetETHUSD)
+		gocron.Every(10).Seconds().Do(global.SetExchangeRates)
 		gocron.Every(10).Seconds().Do(fireeye.SyncStatus, context.Background())
 		<-gocron.Start()
 	}()

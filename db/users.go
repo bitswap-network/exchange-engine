@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math"
 	"time"
 
 	"exchange-engine/models"
@@ -40,7 +41,11 @@ func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, et
 	if (bitcloutChange > 0) == (etherChange > 0) {
 		return errors.New("both `bitcloutChange` and `etherChange` cannot be positive or negative")
 	}
-	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
+	var (
+		nanosChange = math.Round(bitcloutChange * 1e9)
+		weiChange   = math.Round(etherChange * 1e18)
+	)
+	update := bson.M{"$inc": bson.M{"balance.bitclout": nanosChange, "balance.ether": weiChange}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
 	if err != nil {
 		return err
@@ -102,6 +107,9 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 			}},
 			{"totalEther", bson.D{
 				{"$sum", "$balance.ether"},
+			}},
+			{"totalUsdc", bson.D{
+				{"$sum", "$balance.usdc"},
 			}},
 		}},
 	}
