@@ -87,10 +87,10 @@ func Setup() {
 	Wallet.HashKey = envMap["WALLET_HASHKEY"]
 
 	if IsTest {
-		Wallet.InitBcltTolerance = -56.2387113
+		Wallet.InitBcltTolerance = -55.6487113
 		Wallet.InitEthTolerance = 0.71513
 	} else {
-		Wallet.InitBcltTolerance = -28.8750089
+		Wallet.InitBcltTolerance = -28.2850089
 		Wallet.InitEthTolerance = 10.8817807
 	}
 
