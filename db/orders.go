@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math/big"
+	"strconv"
 	"time"
 
 	"exchange-engine/global"
@@ -16,8 +19,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
+func GetOrderFees(ctx context.Context) (*models.CurrencyAmountsBig, error) {
 	var totalFees *models.CurrencyAmounts
+	var totalFeesBig models.CurrencyAmountsBig
 
 	bitcloutMatchStage := bson.D{
 		{"$match", bson.D{
@@ -72,7 +76,15 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmounts, error) {
 		log.Println("total fees eth err", err.Error())
 		return nil, err
 	}
-	return totalFees, nil
+	totalFeesBig.Bitclout = new(big.Int)
+	totalFeesBig.Ether = new(big.Int)
+	var okBitclout, okEther bool
+	totalFeesBig.Bitclout, okBitclout = totalFeesBig.Bitclout.SetString(strconv.FormatFloat(totalFees.Bitclout, 'f', -1, 64), 10)
+	totalFeesBig.Ether, okEther = totalFeesBig.Ether.SetString(strconv.FormatFloat(totalFees.Ether, 'f', -1, 64), 10)
+	if !okBitclout || !okEther {
+		return nil, errors.New(fmt.Sprintf("SetString Error bitclout: %v, ether: %v", okBitclout, okEther))
+	}
+	return &totalFeesBig, nil
 }
 
 func GetActiveOrders(ctx context.Context, publicKey string) (numOrders int, err error) {

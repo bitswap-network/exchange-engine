@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math"
+	"math/big"
+	"strconv"
 	"time"
 
 	"exchange-engine/models"
@@ -108,8 +111,9 @@ func GetUserOrders(ctx context.Context, publicKey string) ([]*models.OrderSchema
 	return ordersArray, nil
 }
 
-func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
+func GetTotalBalances(ctx context.Context) (*models.CurrencyAmountsBig, error) {
 	var totalBalances *models.CurrencyAmounts
+	var totalBalancesBig models.CurrencyAmountsBig
 
 	balanceAggregateStage := bson.D{
 		{"$group", bson.D{
@@ -137,6 +141,15 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 	if err != nil {
 		return nil, err
 	}
+	totalBalancesBig.Bitclout = new(big.Int)
+	totalBalancesBig.Ether = new(big.Int)
+	var okBitclout, okEther bool
+	// log.Println(strconv.FormatFloat(totalBalances.Bitclout, 'f', -1, 64))
+	totalBalancesBig.Bitclout, okBitclout = totalBalancesBig.Bitclout.SetString(strconv.FormatFloat(totalBalances.Bitclout, 'f', -1, 64), 10)
+	totalBalancesBig.Ether, okEther = totalBalancesBig.Ether.SetString(strconv.FormatFloat(totalBalances.Ether, 'f', -1, 64), 10)
+	if !okBitclout || !okEther {
+		return nil, errors.New(fmt.Sprintf("SetString Error bitclout: %v, ether: %v", okBitclout, okEther))
+	}
 
-	return totalBalances, nil
+	return &totalBalancesBig, nil
 }

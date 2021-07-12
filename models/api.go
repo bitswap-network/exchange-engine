@@ -1,8 +1,15 @@
 package models
 
+import "math/big"
+
 type CurrencyAmounts struct {
-	Bitclout uint64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
-	Ether    uint64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+	Bitclout float64 `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
+	Ether    float64 `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
+}
+
+type CurrencyAmountsBig struct {
+	Bitclout *big.Int `json:"totalBitclout" bson:"totalBitclout,omitempty" binding:"-"`
+	Ether    *big.Int `json:"totalEther" bson:"totalEther,omitempty" binding:"-"`
 }
 
 type TransferBalanceBody struct {
