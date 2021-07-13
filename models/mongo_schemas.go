@@ -36,8 +36,8 @@ type PoolSchema struct {
 }
 
 type PoolBalanceSchema struct {
-	ETH  uint64 `json:"eth" bson:"eth" binding:"required"`
-	USDC uint64 `json:"usdc" bson:"usdc" binding:"required"`
+	ETH  float64 `json:"eth" bson:"eth" binding:"required"`
+	USDC float64 `json:"usdc" bson:"usdc" binding:"required"`
 }
 
 type WalletSchema struct {
