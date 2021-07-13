@@ -42,9 +42,9 @@ func SyncStatus(ctx context.Context) {
 		log.Panic(err)
 		return
 	}
-	walletEtherBalance, err := global.FromWeiBig(walletEtherBalanceWei)
+	walletEtherBalance := global.FromWei(walletEtherBalanceWei)
 	checkErr(err)
-	FireEye.WalletBalance = models.CurrencyAmounts{float64(walletBitcloutBalanceNanos), float64(walletEtherBalanceWei.Uint64())}
+	FireEye.WalletBalance = models.CurrencyAmounts{float64(walletBitcloutBalanceNanos), float64(walletEtherBalanceWei)}
 	FireEye.TotalAccount = *TotalAccount
 	FireEye.TotalFees = *TotalFees
 
@@ -87,7 +87,7 @@ func SyncStatus(ctx context.Context) {
 		if ether deviation >= 0.05 -> Out of sync
 		if <0.1 && >-1 -> OK
 	*/
-	switch etherDeviation := etherDeviation.Sub(etherTotal, walletEtherBalance); {
+	switch etherDeviation := etherDeviation.Sub(etherTotal, big.NewFloat(walletEtherBalance)); {
 	case etherDeviation.Cmp(big.NewFloat(0.05)) >= 0: // Cmp returns +1 if etherDeviation > 0.05 and 0 if bitcloutDeviation = 0.05
 		if FireEye.Code == 32 {
 			FireEye.Code = 33
