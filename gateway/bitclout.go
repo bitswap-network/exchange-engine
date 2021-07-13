@@ -33,7 +33,7 @@ func QueryWallets(ctx context.Context) {
 			if err != nil {
 				log.Panic(err)
 			}
-			log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
+			// log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
 			for _, txn := range txns {
 				if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
 					log.Println("found deposit: ", txn)
