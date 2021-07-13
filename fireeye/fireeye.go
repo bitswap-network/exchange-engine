@@ -33,7 +33,7 @@ func SyncStatus(ctx context.Context) {
 		log.Panic(err)
 		return
 	}
-	walletBitcloutBalanceNanos := walletBalance.ConfirmedBalanceNanos
+	walletBitcloutBalanceNanos := walletBalance.ConfirmedBalanceNanos + walletBalance.UnconfirmedBalanceNanos
 	walletBitcloutBalance := global.FromNanos(walletBitcloutBalanceNanos)
 
 	walletEtherBalanceWei, err := GetPoolsBalance(ctx)

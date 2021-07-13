@@ -21,5 +21,5 @@ var FireEye = &FireEyeT{
 
 const MidTolerance = 0.001 // 0.1% Tolerance
 const MaxTolerance = 0.005 //0.5% Tolerance
-const BitcloutConfirmations = 1
+const BitcloutConfirmations = 0
 const EthereumConfirmations = 8
