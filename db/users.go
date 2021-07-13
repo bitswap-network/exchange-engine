@@ -37,12 +37,6 @@ func GetUserDoc(ctx context.Context, publicKey string) (*models.UserSchema, erro
 	return userDoc, nil
 }
 
-/*
-Updates a user's BitClout and Ether balances by `bitcloutChange` and `etherChange` respectively.
-
-One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE POSITIVE.
-*/
-
 func CreditUserBalance(ctx context.Context, userId primitive.ObjectID, bitcloutNanosCredit, etherWeiCredit uint64) error {
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutNanosCredit, "balance.ether": etherWeiCredit}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"_id": userId}, update)
@@ -51,6 +45,12 @@ func CreditUserBalance(ctx context.Context, userId primitive.ObjectID, bitcloutN
 	}
 	return nil
 }
+
+/*
+Updates a user's BitClout and Ether balances by `bitcloutChange` and `etherChange` respectively.
+
+One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE POSITIVE.
+*/
 
 func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, etherChange float64) error {
 	if (bitcloutChange > 0) == (etherChange > 0) {

@@ -27,7 +27,7 @@ func QueryWallets(ctx context.Context) {
 	}
 	for _, wallet := range wallets {
 		wg.Add(1)
-		time.Sleep(15 * time.Millisecond) // to prevent api from getting overwhelmed
+		time.Sleep(20 * time.Millisecond) // to prevent api from getting overwhelmed
 		go func(wallet *models.WalletSchema) {
 			walletBalanceNanos, err := GetWalletBalance(wallet)
 			if err != nil {
@@ -47,14 +47,17 @@ func QueryWallets(ctx context.Context) {
 				}
 				log.Println(transaction)
 				feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
+
 				err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
 				if err != nil {
 					log.Println(err)
 				}
+
 				err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
 				if err != nil {
 					log.Println(err)
 				}
+
 				//create transaction in database
 				//send funds
 				//update user balance
