@@ -29,55 +29,57 @@ func QueryWallets(ctx context.Context) {
 		wg.Add(1)
 		time.Sleep(20 * time.Millisecond) // to prevent api from getting overwhelmed
 		go func(wallet *models.WalletSchema) {
-			walletBalance, txns, err := GetWalletBalance(wallet)
-			if err != nil {
-				log.Panic(err)
-			}
-			// log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
-			for _, txn := range txns {
-				if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
-					log.Println("found deposit: ", txn)
-					if txn.Confirmations == 0 {
-						amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
-						err = db.CreatePendingDeposit(ctx, wallet.User, "BCLT", global.FromNanos(amountToTransfer), txn.TransactionIDBase58Check)
-						if err != nil {
-							log.Panic(err)
-						}
-					} else {
-						if walletBalance-wallet.Fees.Bitclout >= txn.AmountNanos {
-							log.Println("completing deposit")
-							// amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
-							// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
-							// if err != nil {
-							// 	log.Panic(err)
-							// }
-							err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, BITCLOUT_DEPOSIT_FEENANOS)
+			if !config.IsTest {
+				walletBalance, txns, err := GetWalletBalance(wallet)
+				if err != nil {
+					log.Panic(err)
+				}
+				// log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
+				for _, txn := range txns {
+					if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
+						log.Println("found deposit: ", txn)
+						if txn.Confirmations == 0 {
+							amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+							err = db.CreatePendingDeposit(ctx, wallet.User, "BCLT", global.FromNanos(amountToTransfer), txn.TransactionIDBase58Check)
 							if err != nil {
-								log.Println(err)
-							} else {
-								amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
-								transaction, err := TransferToMain(ctx, wallet, amountToTransfer, false)
-								if err != nil {
-									log.Panic(err)
-								}
-								log.Println(transaction)
-								feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
-
-								err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
-								if err != nil {
-									log.Println(err)
-								}
-
-								err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
+								log.Panic(err)
+							}
+						} else {
+							if walletBalance-wallet.Fees.Bitclout >= txn.AmountNanos {
+								log.Println("completing deposit")
+								// amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+								// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
+								// if err != nil {
+								// 	log.Panic(err)
+								// }
+								err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, BITCLOUT_DEPOSIT_FEENANOS)
 								if err != nil {
 									log.Println(err)
+								} else {
+									amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+									transaction, err := TransferToMain(ctx, wallet, amountToTransfer, false)
+									if err != nil {
+										log.Panic(err)
+									}
+									log.Println(transaction)
+									feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
+
+									err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
+									if err != nil {
+										log.Println(err)
+									}
+
+									err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
+									if err != nil {
+										log.Println(err)
+									}
 								}
 							}
 						}
+						//create transaction in database
+						//send funds
+						//update user balance
 					}
-					//create transaction in database
-					//send funds
-					//update user balance
 				}
 			}
 			wg.Done()
