@@ -112,6 +112,8 @@ func SyncStatus(ctx context.Context) {
 		log.Printf("FireEye Status: %v. Message: %s Bitclout Deviation: %v. Ethereum Deviation: %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
 		log.Printf("Bitclout DB Balance: %v.  Bitclout Fees %v. Bitclout Wallet Balance: %v.\n", totalAccountBitclout, totalFeesBitclout, walletBitcloutBalance)
 		log.Printf("Ethereum DB Balance: %v. Ethereum Fees: %v. Ethereum Wallet Balance %v.\n", totalAccountEther, totalFeesEther, walletEtherBalance)
+	} else {
+		log.Printf("FireEye Status: %v. Message: %s Bitclout Deviation: %v. Ethereum Deviation: %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
 	}
 
 }

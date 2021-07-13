@@ -11,7 +11,7 @@ import (
 func GetAllWallets(ctx context.Context) ([]*models.WalletSchema, error) {
 	var walletsArray []*models.WalletSchema
 
-	cursor, err := WalletCollection().Find(ctx, bson.M{"user": bson.M{"$ne": nil}})
+	cursor, err := WalletCollection().Find(ctx, bson.M{"super": 1})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

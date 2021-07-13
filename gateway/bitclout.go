@@ -33,6 +33,7 @@ func QueryWallets(ctx context.Context) {
 			if err != nil {
 				log.Panic(err)
 			}
+			log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
 			for _, txn := range txns {
 				if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
 					log.Println("found deposit: ", txn)
@@ -43,7 +44,7 @@ func QueryWallets(ctx context.Context) {
 							log.Panic(err)
 						}
 					} else {
-						if walletBalance >= txn.AmountNanos {
+						if walletBalance-wallet.Fees.Bitclout >= txn.AmountNanos {
 							log.Println("completing deposit")
 							// amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
 							// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
@@ -121,7 +122,7 @@ func GetWalletBalance(wallet *models.WalletSchema) (confirmedBalance uint64, tra
 	getWalletBalanceResp := new(models.GetWalletBalanceResponse)
 	err = global.PostJson(fmt.Sprintf("%s/api/v1/balance", config.BITCLOUT_NODEURL), getWalletBalanceReqBody, getWalletBalanceResp)
 
-	confirmedBalance = getWalletBalanceResp.ConfirmedBalanceNanos
+	confirmedBalance = getWalletBalanceResp.ConfirmedBalanceNanos + getWalletBalanceResp.UnconfirmedBalanceNanos
 	transactions = getWalletBalanceResp.UTXOs
 	return
 }
