@@ -9,6 +9,7 @@ import (
 	"exchange-engine/models"
 	"fmt"
 	"log"
+	"math/big"
 )
 
 func GetMainWalletBalance(ctx context.Context) (*models.GetWalletBalanceResponse, error) {
@@ -31,11 +32,12 @@ func GetMainWalletBalance(ctx context.Context) (*models.GetWalletBalanceResponse
 	return getWalletBalanceResp, nil
 }
 
-func GetPoolsBalance(ctx context.Context) (balanceWei uint64, err error) {
+func GetPoolsBalance(ctx context.Context) (balanceWei *big.Int, err error) {
 	pools, err := db.GetAllPools(ctx)
-	balanceWei = 0
+	balanceWei = big.NewInt(0)
 	for _, pool := range pools {
-		balanceWei += pool.Balance.ETH
+		balanceWei = balanceWei.Add(balanceWei, big.NewInt(int64(pool.Balance.ETH)))
+		// balanceWei += pool.Balance.ETH
 	}
 	return
 }
