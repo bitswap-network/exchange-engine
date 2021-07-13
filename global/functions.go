@@ -7,7 +7,7 @@ import (
 )
 
 func ToWei(etherValue float64) (weiValue uint64, err error) {
-	weiString := strconv.FormatFloat(etherValue*1e18, 'f', -1, 64)
+	weiString := strconv.FormatFloat(etherValue*1e18, 'f', 0, 64)
 	weiValue, err = strconv.ParseUint(weiString, 10, 64)
 	return
 }
@@ -16,7 +16,7 @@ func FromWei(weiValue uint64) (etherValue float64) {
 	return
 }
 func ToNanos(cloutValue float64) (nanosValue uint64, err error) {
-	nanosString := strconv.FormatFloat(cloutValue*1e9, 'f', -1, 64)
+	nanosString := strconv.FormatFloat(cloutValue*1e9, 'f', 0, 64)
 	nanosValue, err = strconv.ParseUint(nanosString, 10, 64)
 	return
 }
@@ -66,7 +66,7 @@ func FromNanosBig(nanosValue *big.Int) (cloutValue *big.Float, err error) {
 }
 
 func ToUSDCBase(usdcValue float64) (usdcBaseValue uint64, err error) {
-	usdcBaseString := strconv.FormatFloat(usdcValue*1e6, 'f', -1, 64)
+	usdcBaseString := strconv.FormatFloat(usdcValue*1e6, 'f', 0, 64)
 	usdcBaseValue, err = strconv.ParseUint(usdcBaseString, 10, 64)
 	return
 }
