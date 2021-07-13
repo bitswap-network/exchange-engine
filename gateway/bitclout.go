@@ -34,7 +34,7 @@ func QueryWallets(ctx context.Context) {
 				log.Panic(err)
 			}
 			for _, txn := range txns {
-				if txn.AmountNanos-wallet.Fees.Bitclout > 1000000 {
+				if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
 					log.Println("found deposit: ", txn)
 					if txn.Confirmations == 0 {
 						amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
@@ -43,13 +43,14 @@ func QueryWallets(ctx context.Context) {
 							log.Panic(err)
 						}
 					} else {
-						if walletBalance > txn.AmountNanos {
-							amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
-							transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
-							if err != nil {
-								log.Panic(err)
-							}
-							err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, transactionDry.TransactionInfo.FeeNanos)
+						if walletBalance >= txn.AmountNanos {
+							log.Println("completing deposit")
+							// amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+							// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
+							// if err != nil {
+							// 	log.Panic(err)
+							// }
+							err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, BITCLOUT_DEPOSIT_FEENANOS)
 							if err != nil {
 								log.Println(err)
 							} else {
@@ -85,6 +86,7 @@ func QueryWallets(ctx context.Context) {
 }
 
 func TransferToMain(ctx context.Context, wallet *models.WalletSchema, amountNanos uint64, dryRun bool) (transferBalanceResponse *models.TransferBalanceResponse, err error) {
+	log.Println("transfering to main")
 	mainWallet, err := db.GetMainWallet(ctx)
 	if err != nil {
 		log.Println(err)
