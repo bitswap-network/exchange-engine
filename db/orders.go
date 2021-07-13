@@ -79,8 +79,8 @@ func GetOrderFees(ctx context.Context) (*models.CurrencyAmountsBig, error) {
 	totalFeesBig.Bitclout = new(big.Int)
 	totalFeesBig.Ether = new(big.Int)
 	var okBitclout, okEther bool
-	totalFeesBig.Bitclout, okBitclout = totalFeesBig.Bitclout.SetString(strconv.FormatFloat(totalFees.Bitclout, 'f', -1, 64), 10)
-	totalFeesBig.Ether, okEther = totalFeesBig.Ether.SetString(strconv.FormatFloat(totalFees.Ether, 'f', -1, 64), 10)
+	totalFeesBig.Bitclout, okBitclout = totalFeesBig.Bitclout.SetString(strconv.FormatFloat(totalFees.Bitclout, 'f', 0, 64), 10)
+	totalFeesBig.Ether, okEther = totalFeesBig.Ether.SetString(strconv.FormatFloat(totalFees.Ether, 'f', 0, 64), 10)
 	if !okBitclout || !okEther {
 		return nil, errors.New(fmt.Sprintf("SetString Error bitclout: %v, ether: %v", okBitclout, okEther))
 	}
