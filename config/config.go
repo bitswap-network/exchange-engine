@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const BITCLOUT_NODEURL = "http://node.bitswap.network"
+const BITCLOUT_NODEURL = "https://node.bitswap.network"
 
 type WalletStruct struct {
 	HashKey           string
