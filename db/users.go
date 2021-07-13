@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"math/big"
 	"strconv"
 	"time"
 
+	"exchange-engine/global"
 	"exchange-engine/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -56,12 +56,17 @@ func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, et
 	if (bitcloutChange > 0) == (etherChange > 0) {
 		return errors.New("both `bitcloutChange` and `etherChange` cannot be positive or negative")
 	}
-	var (
-		nanosChange = math.Round(bitcloutChange * 1e9)
-		weiChange   = math.Round(etherChange * 1e18)
-	)
+
+	nanosChange, err := global.ToNanos(bitcloutChange)
+	if err != nil {
+		return err
+	}
+	weiChange, err := global.ToWei(etherChange)
+	if err != nil {
+		return err
+	}
 	update := bson.M{"$inc": bson.M{"balance.bitclout": nanosChange, "balance.ether": weiChange}}
-	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
+	_, err = UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
 	if err != nil {
 		return err
 	}
