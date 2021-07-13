@@ -91,7 +91,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetExchangeRates)
-		gocron.Every(6).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(5).Seconds().Do(fireeye.SyncStatus, context.Background())
 		gocron.Every(1).Minute().Do(gateway.QueryWallets, context.Background())
 		<-gocron.Start()
 	}()
