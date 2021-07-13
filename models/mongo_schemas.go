@@ -20,7 +20,7 @@ type TransactionSchema struct {
 	Error           string             `json:"error" bson:"error,omitempty" binding:"-"`
 	PoolAddress     *string            `json:"poolAddress" bson:"poolAddress,omitempty" binding:"-"`
 	GasPrice        *float64           `json:"gasPrice" bson:"gasPrice,omitempty" binding:"-"`
-	TxnHash         *string            `json:"txnHash" bson:"txnHash,omitempty" binding:"-"`
+	TxnHash         string             `json:"txnHash" bson:"txnHash,omitempty" binding:"-"`
 }
 
 type PoolSchema struct {

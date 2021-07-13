@@ -92,7 +92,7 @@ func main() {
 	go func() {
 		gocron.Every(10).Seconds().Do(global.SetExchangeRates)
 		gocron.Every(5).Seconds().Do(fireeye.SyncStatus, context.Background())
-		gocron.Every(1).Minute().Do(gateway.QueryWallets, context.Background())
+		gocron.Every(10).Seconds().Do(gateway.QueryWallets, context.Background())
 		<-gocron.Start()
 	}()
 

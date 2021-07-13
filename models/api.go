@@ -65,10 +65,19 @@ type GetWalletBalanceBody struct {
 }
 
 type GetWalletBalanceResponse struct {
-	ConfirmedBalanceNanos   uint64 `json:"ConfirmedBalanceNanos"`
-	UnconfirmedBalanceNanos uint64 `json:"UnconfirmedBalanceNanos"`
+	ConfirmedBalanceNanos   uint64      `json:"ConfirmedBalanceNanos"`
+	UnconfirmedBalanceNanos uint64      `json:"UnconfirmedBalanceNanos"`
+	UTXOs                   []*UTXOResp `json:"UTXOs"`
 }
-
+type UTXOResp struct {
+	TransactionIDBase58Check string `json:"TransactionIDBase58Check"`
+	Index                    uint   `json:"Index"`
+	AmountNanos              uint64 `json:"AmountNanos"`
+	PublicKeyBase58Check     string `json:"PublicKeyBase58Check"`
+	Confirmations            uint   `json:"Confirmations"`
+	UtxoType                 string `json:"UtxoType"`
+	BlockHeight              uint64 `json:"BlockHeight"`
+}
 type GetUsersStateLessResponse struct {
 	Userlist []*UserList `json:"UserList"`
 }

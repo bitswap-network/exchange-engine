@@ -29,38 +29,54 @@ func QueryWallets(ctx context.Context) {
 		wg.Add(1)
 		time.Sleep(20 * time.Millisecond) // to prevent api from getting overwhelmed
 		go func(wallet *models.WalletSchema) {
-			walletBalanceNanos, err := GetWalletBalance(wallet)
+			walletBalance, txns, err := GetWalletBalance(wallet)
 			if err != nil {
 				log.Panic(err)
 			}
-			if walletBalanceNanos-wallet.Fees.Bitclout > 1000000 {
-				log.Println("found deposit: ", wallet)
-				amountToTransfer := walletBalanceNanos - BITCLOUT_DEPOSIT_FEENANOS
-				err = db.CreateDepositTransaction(ctx, wallet.User, "BCLT", global.FromNanos(amountToTransfer))
-				if err != nil {
-					log.Panic(err)
-				}
+			for _, txn := range txns {
+				if txn.AmountNanos-wallet.Fees.Bitclout > 1000000 {
+					log.Println("found deposit: ", txn)
+					if txn.Confirmations == 0 {
+						amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+						err = db.CreatePendingDeposit(ctx, wallet.User, "BCLT", global.FromNanos(amountToTransfer), txn.TransactionIDBase58Check)
+						if err != nil {
+							log.Panic(err)
+						}
+					} else {
+						if walletBalance > txn.AmountNanos {
+							amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+							transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
+							if err != nil {
+								log.Panic(err)
+							}
+							err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, transactionDry.TransactionInfo.FeeNanos)
+							if err != nil {
+								log.Println(err)
+							} else {
+								amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
+								transaction, err := TransferToMain(ctx, wallet, amountToTransfer, false)
+								if err != nil {
+									log.Panic(err)
+								}
+								log.Println(transaction)
+								feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
 
-				transaction, err := TransferToMain(ctx, wallet, amountToTransfer, false)
-				if err != nil {
-					log.Panic(err)
-				}
-				log.Println(transaction)
-				feesRemaining := BITCLOUT_DEPOSIT_FEENANOS - transaction.TransactionInfo.FeeNanos
+								err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
+								if err != nil {
+									log.Println(err)
+								}
 
-				err = db.CreditUserBalance(ctx, wallet.User, amountToTransfer, 0)
-				if err != nil {
-					log.Println(err)
+								err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
+								if err != nil {
+									log.Println(err)
+								}
+							}
+						}
+					}
+					//create transaction in database
+					//send funds
+					//update user balance
 				}
-
-				err = db.SetFeesBitclout(ctx, wallet, feesRemaining)
-				if err != nil {
-					log.Println(err)
-				}
-
-				//create transaction in database
-				//send funds
-				//update user balance
 			}
 			wg.Done()
 		}(wallet)
@@ -94,7 +110,7 @@ func TransferToMain(ctx context.Context, wallet *models.WalletSchema, amountNano
 	return
 }
 
-func GetWalletBalance(wallet *models.WalletSchema) (balance uint64, err error) {
+func GetWalletBalance(wallet *models.WalletSchema) (confirmedBalance uint64, transactions []*models.UTXOResp, err error) {
 	getWalletBalanceMap := models.GetWalletBalanceBody{wallet.KeyInfo.Bitclout.PublicKeyBase58Check, fireeye.BitcloutConfirmations}
 	getWalletBalanceReqBody, _ := json.Marshal(getWalletBalanceMap)
 	if err != nil {
@@ -103,7 +119,8 @@ func GetWalletBalance(wallet *models.WalletSchema) (balance uint64, err error) {
 	getWalletBalanceResp := new(models.GetWalletBalanceResponse)
 	err = global.PostJson(fmt.Sprintf("%s/api/v1/balance", config.BITCLOUT_NODEURL), getWalletBalanceReqBody, getWalletBalanceResp)
 
-	balance = getWalletBalanceResp.ConfirmedBalanceNanos
+	confirmedBalance = getWalletBalanceResp.ConfirmedBalanceNanos
+	transactions = getWalletBalanceResp.UTXOs
 	return
 }
 
