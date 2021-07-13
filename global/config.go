@@ -41,7 +41,7 @@ func SetExchangeRates() {
 		return
 	}
 	apiRespBitclout := new(models.CloutPriceAPI)
-	if err := GetJson("https://bitswap-core-api-staging.herokuapp.com/utility/bitclout-usd", apiRespBitclout); err != nil {
+	if err := GetJson("https://api.bitswap.network/utility/bitclout-usd", apiRespBitclout); err != nil {
 		log.Panic("ERROR CLOUT USD: ", err)
 		return
 	}
