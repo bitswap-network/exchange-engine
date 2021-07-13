@@ -38,6 +38,7 @@ func GetUserDoc(ctx context.Context, publicKey string) (*models.UserSchema, erro
 }
 
 func CreditUserBalance(ctx context.Context, userId primitive.ObjectID, bitcloutNanosCredit, etherWeiCredit uint64) error {
+	log.Println("crediting user")
 	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutNanosCredit, "balance.ether": etherWeiCredit}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"_id": userId}, update)
 	if err != nil {
