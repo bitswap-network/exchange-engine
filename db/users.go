@@ -149,7 +149,6 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmountsBig, error) {
 	totalBalancesBig.Bitclout = new(big.Int)
 	totalBalancesBig.Ether = new(big.Int)
 	var okBitclout, okEther bool
-	// log.Println(strconv.FormatFloat(totalBalances.Bitclout, 'f', 0, 64))
 	totalBalancesBig.Bitclout, okBitclout = totalBalancesBig.Bitclout.SetString(strconv.FormatFloat(totalBalances.Bitclout, 'f', 0, 64), 10)
 	totalBalancesBig.Ether, okEther = totalBalancesBig.Ether.SetString(strconv.FormatFloat(totalBalances.Ether, 'f', 0, 64), 10)
 	if !okBitclout || !okEther {
