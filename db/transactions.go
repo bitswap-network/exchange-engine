@@ -57,7 +57,7 @@ func CreatePendingDeposit(ctx context.Context, user primitive.ObjectID, assetTyp
 
 func CompletePendingDeposit(ctx context.Context, user primitive.ObjectID, txnHash string, gasPrice uint64) error {
 	update := bson.M{"$set": bson.M{"state": "done", "completed": true, "completionDate": time.Now().UTC(), "gasPrice": gasPrice}}
-	_, err := TransactionCollection().UpdateOne(ctx, bson.M{"txnHash": txnHash, "state": "pending", "completed": false}, update)
+	_, err := TransactionCollection().UpdateOne(ctx, bson.M{"txnHash": txnHash}, update)
 	if err != nil {
 		log.Println(err.Error())
 		return err
