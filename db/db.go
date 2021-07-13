@@ -19,10 +19,12 @@ type DbConfig struct {
 }
 
 type CollectionRef struct {
-	Depths string
-	Users  string
-	Orders string
-	Pools  string
+	Depths       string
+	Users        string
+	Orders       string
+	Pools        string
+	Wallets      string
+	Transactions string
 }
 
 const (
@@ -34,10 +36,12 @@ var DB = &DbConfig{}
 
 func getCollections() *CollectionRef {
 	return &CollectionRef{
-		Depths: "depths",
-		Users:  "users",
-		Orders: "orders",
-		Pools:  "pools",
+		Depths:       "depths",
+		Users:        "users",
+		Orders:       "orders",
+		Pools:        "pools",
+		Wallets:      "wallets",
+		Transactions: "transactions",
 	}
 }
 func GetDB() *mongo.Database {
@@ -48,7 +52,11 @@ func DepthCollection() *mongo.Collection {
 	return GetDB().Collection(DB.Collections.Depths)
 }
 
-func PoolCollections() *mongo.Collection {
+func WalletCollection() *mongo.Collection {
+	return GetDB().Collection(DB.Collections.Wallets)
+}
+
+func PoolCollection() *mongo.Collection {
 	return GetDB().Collection(DB.Collections.Pools)
 }
 
@@ -58,6 +66,9 @@ func UserCollection() *mongo.Collection {
 
 func OrderCollection() *mongo.Collection {
 	return GetDB().Collection(DB.Collections.Orders)
+}
+func TransactionCollection() *mongo.Collection {
+	return GetDB().Collection(DB.Collections.Transactions)
 }
 
 func Close(ctx context.Context) error {

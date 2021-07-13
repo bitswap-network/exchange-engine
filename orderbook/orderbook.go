@@ -311,11 +311,11 @@ func GetOrderbookBytes() (data []byte) {
 func DepthMarshalJSON() (*models.DepthSchema, error) {
 
 	level := OB.asks.MaxPriceQueue()
-	var asks, bids []*models.PriceLevel
+	var asks, bids []*models.PriceLevelSchema
 	for level != nil {
 		priceFloat, _ := level.Price().Float64()
 		volumeFloat, _ := level.Volume().Float64()
-		asks = append(asks, &models.PriceLevel{
+		asks = append(asks, &models.PriceLevelSchema{
 			Price:    priceFloat,
 			Quantity: volumeFloat,
 		})
@@ -326,7 +326,7 @@ func DepthMarshalJSON() (*models.DepthSchema, error) {
 	for level != nil {
 		priceFloat, _ := level.Price().Float64()
 		volumeFloat, _ := level.Volume().Float64()
-		bids = append(bids, &models.PriceLevel{
+		bids = append(bids, &models.PriceLevelSchema{
 			Price:    priceFloat,
 			Quantity: volumeFloat,
 		})

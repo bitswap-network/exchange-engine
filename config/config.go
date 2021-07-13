@@ -7,9 +7,10 @@ import (
 	"time"
 )
 
+const BITCLOUT_NODEURL = "http://node.bitswap.network"
+
 type WalletStruct struct {
-	Addr_BCLT         []string
-	Addr_ETH          []string
+	HashKey           string
 	InitBcltTolerance float64
 	InitEthTolerance  float64
 }
@@ -70,7 +71,7 @@ func Setup() {
 	} else {
 		IsTest = true
 	}
-
+	log.Println(IsTest)
 	ServerConfig.ReadTimeout = 60 * time.Second
 	ServerConfig.WriteTimeout = 60 * time.Second
 	DatabaseConfig.AWSKey = envMap["MONGODB_USERNAME"]
@@ -83,11 +84,11 @@ func Setup() {
 	S3Config.LogName = "orderbook"
 	S3Config.Bucket = envMap["BUCKET"]
 	UtilConfig.ETHERSCAN_KEY = envMap["ETHERSCAN_KEY"]
-	Wallet.Addr_BCLT = append(Wallet.Addr_BCLT, "BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1")
+	Wallet.HashKey = envMap["WALLET_HASHKEY"]
 
 	if IsTest {
-		Wallet.InitBcltTolerance = -28.8750089
-		Wallet.InitEthTolerance = 0.887120629
+		Wallet.InitBcltTolerance = -54.4744906
+		Wallet.InitEthTolerance = 0.80296661
 	} else {
 		Wallet.InitBcltTolerance = -28.2850089
 		Wallet.InitEthTolerance = 10.8817807

@@ -2,13 +2,19 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math"
+	"math/big"
+	"strconv"
 	"time"
 
 	"exchange-engine/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -31,16 +37,30 @@ func GetUserDoc(ctx context.Context, publicKey string) (*models.UserSchema, erro
 	return userDoc, nil
 }
 
+func CreditUserBalance(ctx context.Context, userId primitive.ObjectID, bitcloutNanosCredit, etherWeiCredit uint64) error {
+	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutNanosCredit, "balance.ether": etherWeiCredit}}
+	_, err := UserCollection().UpdateOne(ctx, bson.M{"_id": userId}, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 /*
 Updates a user's BitClout and Ether balances by `bitcloutChange` and `etherChange` respectively.
 
 One of `bitcloutChange` and `etherChange` MUST BE NEGATIVE. The other MUST BE POSITIVE.
 */
+
 func UpdateUserBalance(ctx context.Context, publicKey string, bitcloutChange, etherChange float64) error {
 	if (bitcloutChange > 0) == (etherChange > 0) {
 		return errors.New("both `bitcloutChange` and `etherChange` cannot be positive or negative")
 	}
-	update := bson.M{"$inc": bson.M{"balance.bitclout": bitcloutChange, "balance.ether": etherChange}}
+	var (
+		nanosChange = math.Round(bitcloutChange * 1e9)
+		weiChange   = math.Round(etherChange * 1e18)
+	)
+	update := bson.M{"$inc": bson.M{"balance.bitclout": nanosChange, "balance.ether": weiChange}}
 	_, err := UserCollection().UpdateOne(ctx, bson.M{"bitclout.publicKey": publicKey}, update)
 	if err != nil {
 		return err
@@ -91,8 +111,9 @@ func GetUserOrders(ctx context.Context, publicKey string) ([]*models.OrderSchema
 	return ordersArray, nil
 }
 
-func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
+func GetTotalBalances(ctx context.Context) (*models.CurrencyAmountsBig, error) {
 	var totalBalances *models.CurrencyAmounts
+	var totalBalancesBig models.CurrencyAmountsBig
 
 	balanceAggregateStage := bson.D{
 		{"$group", bson.D{
@@ -115,11 +136,20 @@ func GetTotalBalances(ctx context.Context) (*models.CurrencyAmounts, error) {
 		return nil, err
 	}
 
-	bsonBytes, _ := bson.Marshal(results[0])
-	err = bson.Unmarshal(bsonBytes, &totalBalances)
+	jsonBytes, _ := json.Marshal(results[0])
+	err = json.Unmarshal(jsonBytes, &totalBalances)
 	if err != nil {
 		return nil, err
 	}
+	totalBalancesBig.Bitclout = new(big.Int)
+	totalBalancesBig.Ether = new(big.Int)
+	var okBitclout, okEther bool
+	// log.Println(strconv.FormatFloat(totalBalances.Bitclout, 'f', -1, 64))
+	totalBalancesBig.Bitclout, okBitclout = totalBalancesBig.Bitclout.SetString(strconv.FormatFloat(totalBalances.Bitclout, 'f', -1, 64), 10)
+	totalBalancesBig.Ether, okEther = totalBalancesBig.Ether.SetString(strconv.FormatFloat(totalBalances.Ether, 'f', -1, 64), 10)
+	if !okBitclout || !okEther {
+		return nil, errors.New(fmt.Sprintf("SetString Error bitclout: %v, ether: %v", okBitclout, okEther))
+	}
 
-	return totalBalances, nil
+	return &totalBalancesBig, nil
 }

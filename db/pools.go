@@ -11,7 +11,7 @@ import (
 func GetAllPools(ctx context.Context) ([]*models.PoolSchema, error) {
 	var poolsArray []*models.PoolSchema
 
-	cursor, err := PoolCollections().Find(ctx, bson.D{})
+	cursor, err := PoolCollection().Find(ctx, bson.D{})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

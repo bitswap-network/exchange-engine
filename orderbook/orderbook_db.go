@@ -55,13 +55,13 @@ func validateBalance(order *Order, checkInTransaction bool) error {
 		totalPrice, _ := (order.Price().Mul(order.Quantity())).Float64()
 		totalQuantity, _ := (order.Quantity()).Float64()
 		if order.Side() == Buy {
-			if totalPrice/global.Exchange.ETHUSD <= balance.Ether {
+			if totalPrice/global.Exchange.ETHUSD <= global.FromWei(balance.Ether) {
 				return nil
 			} else {
 				return errors.New("Insufficient funds.")
 			}
 		} else {
-			if totalQuantity <= balance.Bitclout {
+			if totalQuantity <= global.FromNanos(balance.Bitclout) {
 				return nil
 			} else {
 				return errors.New("Insufficient funds.")

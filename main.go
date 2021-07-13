@@ -12,6 +12,7 @@ import (
 	"exchange-engine/config"
 	"exchange-engine/db"
 	"exchange-engine/fireeye"
+	"exchange-engine/gateway"
 	"exchange-engine/global"
 	"exchange-engine/orderbook"
 	"exchange-engine/s3"
@@ -66,8 +67,6 @@ func RouterSetup() *gin.Engine {
 
 func main() {
 
-	// ethGateway, err := ethclient.Dial("https://eth-mainnet.alchemyapi.io/v2/xhIIdjrFA63X5jKpLK2mm5ZLjgy-jQaH")
-
 	// Enable line numbers in logging
 	log.SetFlags(log.Lshortfile)
 
@@ -91,8 +90,9 @@ func main() {
 
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		gocron.Every(10).Seconds().Do(global.SetETHUSD)
-		gocron.Every(10).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(10).Seconds().Do(global.SetExchangeRates)
+		gocron.Every(5).Seconds().Do(fireeye.SyncStatus, context.Background())
+		gocron.Every(10).Seconds().Do(gateway.QueryWallets, context.Background())
 		<-gocron.Start()
 	}()
 

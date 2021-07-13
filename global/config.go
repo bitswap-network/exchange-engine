@@ -15,6 +15,7 @@ import (
 
 type ExchangeRate struct {
 	ETHUSD     float64
+	CLOUTUSD   float64
 	LastUpdate int64
 	FEE        float64
 }
@@ -24,24 +25,31 @@ var Exchange = &ExchangeRate{}
 func Setup() {
 	log.Println("global setup")
 	Exchange.FEE = 0.01
-	SetETHUSD()
+	SetExchangeRates()
 	log.Println("global setup complete")
 }
 
-func SetETHUSD() {
-	apiResp := new(models.EthPriceAPI)
-	if err := GetJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiResp); err != nil {
+func SetExchangeRates() {
+	apiRespEther := new(models.EthPriceAPI)
+	if err := GetJson(fmt.Sprintf("https://api.etherscan.io/api?module=stats&action=ethprice&apikey=%s", config.UtilConfig.ETHERSCAN_KEY), apiRespEther); err != nil {
 		log.Panic("ERROR ETH USD: ", err)
 		return
 	}
-	price, err := strconv.ParseFloat(apiResp.Result.Ethusd, 64)
+	ethUsd, err := strconv.ParseFloat(apiRespEther.Result.Ethusd, 64)
 	if err != nil {
 		log.Panic("ERROR PARSING FLOAT ETH USD: ", err)
 		return
 	}
+	apiRespBitclout := new(models.CloutPriceAPI)
+	if err := GetJson("https://bitswap-core-api-staging.herokuapp.com/utility/bitclout-usd", apiRespBitclout); err != nil {
+		log.Panic("ERROR CLOUT USD: ", err)
+		return
+	}
 	Exchange.LastUpdate = time.Now().UnixNano() / int64(time.Millisecond)
-	Exchange.ETHUSD = price
+	Exchange.ETHUSD = ethUsd
+	Exchange.CLOUTUSD = apiRespBitclout.Data
 }
+
 func GetJson(url string, target interface{}) error {
 	r, err := http.Get(url)
 	if err != nil {
