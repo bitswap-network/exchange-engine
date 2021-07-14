@@ -36,7 +36,7 @@ func QueryWallets(ctx context.Context) {
 				}
 				// log.Println(walletBalance, wallet.KeyInfo.Bitclout.PublicKeyBase58Check)
 				for _, txn := range txns {
-					if txn.AmountNanos-wallet.Fees.Bitclout > 100000 {
+					if txn.AmountNanos-wallet.Fees.Bitclout > 100000 && txn.PublicKeyBase58Check == wallet.KeyInfo.Bitclout.PublicKeyBase58Check {
 						log.Println("found deposit: ", txn)
 						if txn.Confirmations == 0 {
 							amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
@@ -47,11 +47,7 @@ func QueryWallets(ctx context.Context) {
 						} else {
 							if walletBalance-wallet.Fees.Bitclout >= txn.AmountNanos {
 								log.Println("completing deposit")
-								// amountToTransfer := txn.AmountNanos - BITCLOUT_DEPOSIT_FEENANOS
-								// transactionDry, err := TransferToMain(ctx, wallet, amountToTransfer, true)
-								// if err != nil {
-								// 	log.Panic(err)
-								// }
+
 								err = db.CompletePendingDeposit(ctx, wallet.User, txn.TransactionIDBase58Check, BITCLOUT_DEPOSIT_FEENANOS)
 								if err != nil {
 									log.Println(err)
