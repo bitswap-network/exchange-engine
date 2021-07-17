@@ -70,14 +70,7 @@ func MarketOrderHandler(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
 		return
 	}
-	if order.Quote <= 0 {
-		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid quote"})
-		return
-	}
-	if order.Quote <= 0 {
-		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid quote"})
-		return
-	}
+
 	// Ensure that the order has a valid quantity
 	orderQuantity := decimal.NewFromFloat(order.OrderQuantity)
 	if orderQuantity.Sign() <= 0 {
