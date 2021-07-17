@@ -96,6 +96,7 @@ func MarketOrderHandler(c *gin.Context) {
 		return
 	}
 	orderSlippage := quote.Sub(estMarketPrice).Abs().Div(quote)
+	log.Println(quote, slippage, orderSlippage, estMarketPrice)
 	if orderSlippage.GreaterThan(slippage) {
 		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": "Could not execute order without slippage."})
 		return
