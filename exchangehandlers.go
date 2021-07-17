@@ -39,8 +39,8 @@ func SanitizeHandler(c *gin.Context) {
 }
 
 func MarketOrderHandler(c *gin.Context) {
-	slippageParam := c.Param("quote")
-	quoteParam := c.Param("slippage")
+	slippageParam := c.Param("slippage")
+	quoteParam := c.Param("quote")
 	quote, err := decimal.NewFromString(quoteParam)
 	if err != nil {
 		log.Println(err)
