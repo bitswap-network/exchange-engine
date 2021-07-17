@@ -92,6 +92,8 @@ type OrderSchema struct {
 	Complete               bool               `json:"complete" bson:"complete" binding:"-"`
 	Error                  string             `json:"error" bson:"error" binding:"-"`
 	CompleteTime           time.Time          `json:"completeTime" bson:"completeTime,omitempty" binding:"-"`
+	Quote                  float64            `json:"quote" binding:"-"`
+	Tolerance              float64            `json:"tolerance" binding:"-"`
 }
 
 type UserSchema struct {

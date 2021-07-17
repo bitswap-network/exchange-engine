@@ -39,6 +39,20 @@ func SanitizeHandler(c *gin.Context) {
 }
 
 func MarketOrderHandler(c *gin.Context) {
+	slippageParam := c.Param("quote")
+	quoteParam := c.Param("slippage")
+	quote, err := decimal.NewFromString(quoteParam)
+	if err != nil {
+		log.Println(err)
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	slippage, err := decimal.NewFromString(slippageParam)
+	if err != nil {
+		log.Println(err)
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	var order models.OrderSchema
 	var orderSide orderbook.Side
 
@@ -54,6 +68,14 @@ func MarketOrderHandler(c *gin.Context) {
 		orderSide = orderbook.Sell
 	} else {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid side"})
+		return
+	}
+	if order.Quote <= 0 {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid quote"})
+		return
+	}
+	if order.Quote <= 0 {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "invalid quote"})
 		return
 	}
 	// Ensure that the order has a valid quantity
@@ -80,6 +102,12 @@ func MarketOrderHandler(c *gin.Context) {
 		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": "Could not validate order."})
 		return
 	}
+	orderSlippage := quote.Sub(estMarketPrice).Abs().Div(quote)
+	if orderSlippage.GreaterThan(slippage) {
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": "Could not execute order without slippage."})
+		return
+	}
+	// if math.Abs(estMarketPriceFloat-order.Quote)
 	// Attempt to create an order in the database
 	err = db.CreateOrder(c.Request.Context(), &order)
 	if err != nil {
