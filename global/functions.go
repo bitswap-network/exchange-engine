@@ -11,7 +11,7 @@ func ToWei(etherValue float64) (weiValue uint64, err error) {
 	weiValue, err = strconv.ParseUint(weiString, 10, 64)
 	return
 }
-func FromWei(weiValue uint64) (etherValue float64) {
+func FromWei(weiValue float64) (etherValue float64) {
 	etherValue = float64(weiValue) / 1e18
 	return
 }

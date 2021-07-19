@@ -32,12 +32,12 @@ func GetMainWalletBalance(ctx context.Context) (*models.GetWalletBalanceResponse
 	return getWalletBalanceResp, nil
 }
 
-func GetPoolsBalance(ctx context.Context) (balanceWei uint64, err error) {
+func GetPoolsBalance(ctx context.Context) (balanceWei float64, err error) {
 	pools, err := db.GetAllPools(ctx)
 	balanceWeiFloat := big.NewFloat(0)
 	for _, pool := range pools {
 		balanceWeiFloat.Add(balanceWeiFloat, big.NewFloat(pool.Balance.ETH))
 	}
-	balanceWei, _ = balanceWeiFloat.Uint64()
+	balanceWei, _ = balanceWeiFloat.Float64()
 	return
 }

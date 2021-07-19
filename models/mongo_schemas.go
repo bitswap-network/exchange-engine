@@ -108,10 +108,10 @@ type UserSchema struct {
 }
 
 type UserBalance struct {
-	Bitclout      uint64 `json:"bitclout" bson:"bitclout" binding:"required"`
-	Ether         uint64 `json:"ether" bson:"ether" binding:"required"`
-	USDC          uint64 `json:"usdc" bson:"usdc" binding:"required"`
-	InTransaction bool   `json:"in_transaction" bson:"in_transaction" binding:"required"`
+	Bitclout      uint64  `json:"bitclout" bson:"bitclout" binding:"required"`
+	Ether         float64 `json:"ether" bson:"ether" binding:"required"`
+	USDC          uint64  `json:"usdc" bson:"usdc" binding:"required"`
+	InTransaction bool    `json:"in_transaction" bson:"in_transaction" binding:"required"`
 }
 
 type UserVerification struct {
