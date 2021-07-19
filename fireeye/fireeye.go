@@ -107,6 +107,8 @@ func SyncStatus(ctx context.Context) {
 	// 	}
 	// 	errMsg = true
 	// }
+	FireEye.Code = 0
+	FireEye.Message = "OK"
 
 	if errMsg {
 		log.Printf("FireEye Status: %v. Message: %s Bitclout Deviation: %v. Ethereum Deviation: %v.\n", FireEye.Code, FireEye.Message, bitcloutDeviation, etherDeviation)
