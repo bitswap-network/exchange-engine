@@ -70,11 +70,11 @@ func SyncStatus(ctx context.Context) {
 		if <0.5 && >-1 -> OK
 	*/
 	switch bitcloutDeviation := bitcloutDeviation.Sub(bitcloutTotal, big.NewFloat(walletBitcloutBalance)); {
-	case bitcloutDeviation.Cmp(big.NewFloat(0.5)) >= 0: // Cmp returns +1 if bitcloutDeviation > 0.5 and 0 if bitcloutDeviation = 0.5
-		log.Println(bitcloutDeviation)
-		FireEye.Code = 32
-		FireEye.Message = "Bitclout balance out of sync."
-		errMsg = true
+	// case bitcloutDeviation.Cmp(big.NewFloat(0.5)) >= 0: // Cmp returns +1 if bitcloutDeviation > 0.5 and 0 if bitcloutDeviation = 0.5
+	// 	log.Println(bitcloutDeviation)
+	// 	FireEye.Code = 32
+	// 	FireEye.Message = "Bitclout balance out of sync."
+	// 	errMsg = true
 	case bitcloutDeviation.Cmp(big.NewFloat(-5)) <= 0: // Cmp returns -1 or 0 if bitcloutDeviation <= -1
 		FireEye.Code = 35
 		FireEye.Message = "Unexpected values bitclout."
