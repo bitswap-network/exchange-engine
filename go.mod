@@ -14,7 +14,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/heroku/x v0.0.29
 	github.com/jasonlvhit/gocron v0.0.1
-	github.com/joho/godotenv v1.3.0
+	github.com/joho/godotenv v1.4.0
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/klauspost/compress v1.12.2 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -28,6 +28,7 @@ require (
 	golang.org/x/net v0.0.0-20210508051633-16afe75a6701 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
-	golang.org/x/tools/gopls v0.7.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
