@@ -5,7 +5,7 @@ go 1.16
 // +heroku goVersion 1.16
 require (
 	github.com/Valiben/gin_unit_test v0.0.0-20181205064931-674aee46d090
-	github.com/aws/aws-sdk-go v1.38.45
+	github.com/aws/aws-sdk-go v1.42.25
 	github.com/danielkov/gin-helmet v0.0.0-20171108135313-1387e224435e
 	github.com/emirpasic/gods v1.12.0
 	github.com/gin-contrib/cors v1.3.1
@@ -25,9 +25,9 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.mongodb.org/mongo-driver v1.5.2
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
-	golang.org/x/net v0.0.0-20210508051633-16afe75a6701 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
-	golang.org/x/tools/gopls v0.7.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
